@@ -1,9 +1,9 @@
 {
   "id": "llm-wiki-audit",
-  "name": "LLM Wiki Audit",
+  "name": "Research Workbench Audit",
   "version": "0.1.0",
   "minAppVersion": "1.4.0",
-  "description": "Select text in any wiki page, leave a comment, and have it written as an anchored audit file — ready for the llm-wiki agent's `audit` op.",
+  "description": "Select text in any workbench page, leave a comment, and write it as an anchored audit file for the research workbench `audit` operation.",
   "author": "Lewis Liu",
   "authorUrl": "https://github.com/lewisliu",
   "isDesktopOnly": false

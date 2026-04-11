@@ -2,9 +2,9 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import type LLMWikiAuditPlugin from "./main.js";
 
 export interface LLMWikiAuditSettings {
-  /** Path of the wiki root relative to the vault root. `.` means the vault itself is the wiki. */
+  /** Path of the workbench root relative to the vault root. `.` means the vault itself is the workbench. */
   wikiRoot: string;
-  /** Path of the audit directory relative to the wiki root. */
+  /** Path of the audit directory relative to the workbench root. */
   auditDir: string;
   /** Free-form author name written into every audit file. */
   author: string;
@@ -27,12 +27,12 @@ export class LLMWikiAuditSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "LLM Wiki Audit — settings" });
+    containerEl.createEl("h2", { text: "Research Workbench Audit — settings" });
 
     new Setting(containerEl)
-      .setName("Wiki root")
+      .setName("Workbench root")
       .setDesc(
-        "Path relative to the vault root. If the vault is the wiki, leave this as `.`.",
+        "Path relative to the vault root. If the vault itself is the workbench, leave this as `.`.",
       )
       .addText((text) =>
         text
@@ -46,7 +46,7 @@ export class LLMWikiAuditSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Audit directory")
-      .setDesc("Path relative to the wiki root where audit files are written.")
+      .setDesc("Path relative to the workbench root where audit files are written.")
       .addText((text) =>
         text
           .setPlaceholder("audit")

@@ -15,15 +15,8 @@ export function handlePage(cfg: ServerConfig) {
       return;
     }
 
-    // Default to wiki/index.md if a directory is requested.
-    let full = path.join(cfg.wikiRoot, rel);
-    if (fs.existsSync(full) && fs.statSync(full).isDirectory()) {
-      full = path.join(full, "index.md");
-    }
-
-    if (!full.endsWith(".md")) full += ".md";
-
-    if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
+    const full = resolveMarkdownPath(cfg.wikiRoot, rel);
+    if (!full) {
       res.status(404).json({ error: "file not found", path: rel });
       return;
     }
@@ -31,7 +24,7 @@ export function handlePage(cfg: ServerConfig) {
     // Guarantee the resolved path is still inside wikiRoot.
     const relFromRoot = path.relative(cfg.wikiRoot, full);
     if (relFromRoot.startsWith("..") || path.isAbsolute(relFromRoot)) {
-      res.status(403).json({ error: "path escapes wiki root" });
+      res.status(403).json({ error: "path escapes workbench root" });
       return;
     }
 
@@ -65,10 +58,41 @@ export function handleRaw(cfg: ServerConfig) {
 }
 
 function safeRel(input: string): string | null {
-  if (!input) return "wiki/index.md";
+  if (!input) return "indexes/Home.md";
   // Reject absolute and ..
   if (path.isAbsolute(input)) return null;
   const normalized = path.posix.normalize(input);
   if (normalized.startsWith("..")) return null;
   return normalized;
+}
+
+function resolveMarkdownPath(root: string, rel: string): string | null {
+  const prefixes = ["", "indexes", "compiled", "raw", "outputs", "wiki"];
+  const seen = new Set<string>();
+
+  const addCandidate = (candidate: string): void => {
+    const normalized = path.posix.normalize(candidate);
+    if (!normalized.startsWith("..")) seen.add(normalized);
+  };
+
+  addCandidate(rel);
+  if (!rel.endsWith(".md")) addCandidate(`${rel}.md`);
+  addCandidate(path.posix.join(rel, "index.md"));
+
+  for (const prefix of prefixes) {
+    if (!prefix || rel.startsWith(`${prefix}/`)) continue;
+    addCandidate(path.posix.join(prefix, rel));
+    if (!rel.endsWith(".md")) addCandidate(path.posix.join(prefix, `${rel}.md`));
+    addCandidate(path.posix.join(prefix, rel, "index.md"));
+  }
+
+  for (const candidate of seen) {
+    const full = path.join(root, candidate);
+    if (fs.existsSync(full) && fs.statSync(full).isFile()) return full;
+    if (fs.existsSync(full) && fs.statSync(full).isDirectory()) {
+      const index = path.join(full, "index.md");
+      if (fs.existsSync(index) && fs.statSync(index).isFile()) return index;
+    }
+  }
+  return null;
 }

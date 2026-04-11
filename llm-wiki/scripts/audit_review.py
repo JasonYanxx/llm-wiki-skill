@@ -3,14 +3,14 @@
 audit_review.py — List and group audit feedback by target file.
 
 Usage:
-    python3 audit_review.py <wiki-root> [--open|--resolved|--all]
+    python3 audit_review.py <workbench-root> [--open|--resolved|--all]
 
 Examples:
-    python3 audit_review.py ~/wikis/ai-research --open
-    python3 audit_review.py ~/wikis/ai-research --resolved
-    python3 audit_review.py ~/wikis/ai-research --all
+    python3 audit_review.py ~/workbenches/ai-research --open
+    python3 audit_review.py ~/workbenches/ai-research --resolved
+    python3 audit_review.py ~/workbenches/ai-research --all
 
-Reads every file under `<wiki-root>/audit/` (open) and `<wiki-root>/audit/resolved/`
+Reads every file under `<workbench-root>/audit/` (open) and `<workbench-root>/audit/resolved/`
 (resolved), parses the YAML frontmatter, and prints a report grouped by target
 file. Use this at the start of an `audit` operation to decide processing order.
 
@@ -144,4 +144,3 @@ if __name__ == "__main__":
             print(f"Unknown flag: {arg}", file=sys.stderr)
             sys.exit(1)
     sys.exit(main(root, mode))
-

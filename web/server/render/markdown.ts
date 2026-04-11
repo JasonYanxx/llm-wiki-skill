@@ -134,24 +134,48 @@ function stripFrontmatter(text: string): {
  * Resolve a wikilink target to a file under wikiRoot. Tries:
  *   - the exact relative path as given
  *   - that path + ".md"
- *   - a search for any md file whose stem === target
- *   - a search for any md file whose basename === target
+ *   - that path + "/index.md"
+ *   - the same three forms under canonical roots (`indexes/`, `compiled/`,
+ *     `raw/`, `outputs/`) and legacy `wiki/`
+ *   - a search for any md file whose stem or basename matches the target
  */
 export function findPage(wikiRoot: string, target: string): string | null {
   const tryPath = (rel: string): string | null => {
     const full = path.join(wikiRoot, rel);
     if (fs.existsSync(full) && fs.statSync(full).isFile()) return full;
+    if (fs.existsSync(full) && fs.statSync(full).isDirectory()) {
+      const index = path.join(full, "index.md");
+      if (fs.existsSync(index) && fs.statSync(index).isFile()) return index;
+    }
     return null;
   };
 
-  const direct = tryPath(target) || tryPath(target + ".md");
-  if (direct) return direct;
+  const candidates = [
+    target,
+    `${target}.md`,
+    path.posix.join(target, "index.md"),
+  ];
+  const roots = ["indexes", "compiled", "raw", "outputs", "wiki"];
 
-  // Fallback: scan wiki/ for matching stem.
-  const wikiDir = path.join(wikiRoot, "wiki");
-  if (!fs.existsSync(wikiDir)) return null;
-  const match = findByStem(wikiDir, target);
-  return match;
+  for (const candidate of candidates) {
+    const direct = tryPath(candidate);
+    if (direct) return direct;
+  }
+  for (const root of roots) {
+    if (target.startsWith(`${root}/`)) continue;
+    for (const candidate of candidates) {
+      const direct = tryPath(path.posix.join(root, candidate));
+      if (direct) return direct;
+    }
+  }
+
+  for (const root of ["compiled", "indexes", "raw", "wiki"]) {
+    const base = path.join(wikiRoot, root);
+    if (!fs.existsSync(base)) continue;
+    const match = findByStem(base, target) || findByStem(base, path.posix.basename(target));
+    if (match) return match;
+  }
+  return null;
 }
 
 function findByStem(dir: string, target: string): string | null {

@@ -88,7 +88,7 @@ export function handleAuditCreate(cfg: ServerConfig) {
         return;
       }
 
-      // Make sure the target file exists inside the wiki root.
+      // Make sure the target file exists inside the configured workbench root.
       const targetFull = path.join(cfg.wikiRoot, target);
       if (!fs.existsSync(targetFull) || !fs.statSync(targetFull).isFile()) {
         res.status(404).json({ error: "target file not found", target });

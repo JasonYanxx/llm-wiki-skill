@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Local wiki preview + audit feedback server for the llm-wiki skill.",
+  "description": "Local research workbench viewer plus audit feedback server.",
   "scripts": {
     "build": "node build-client.mjs",
     "prestart": "npm run build",

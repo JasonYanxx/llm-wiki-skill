@@ -271,6 +271,8 @@ export function renderGraph(
 }
 
 function sanitizeGroup(g: string): string {
-  if (g === "concepts" || g === "entities" || g === "summaries") return g;
+  if (g === "projects" || g === "ideas" || g === "knowledge" || g === "people" || g === "review") {
+    return g;
+  }
   return "other";
 }

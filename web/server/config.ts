@@ -54,7 +54,7 @@ export function parseArgs(argv: string[]): ServerConfig {
 
   const resolved = path.resolve(wikiRoot);
   if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
-    console.error(`error: wiki root does not exist or is not a directory: ${resolved}`);
+    console.error(`error: workbench root does not exist or is not a directory: ${resolved}`);
     process.exit(1);
   }
 
@@ -64,12 +64,12 @@ export function parseArgs(argv: string[]): ServerConfig {
 function printHelp(): void {
   console.log(`
 Usage:
-  npm start -- --wiki <wiki-root> [--port 4175] [--host 127.0.0.1] [--author lewis]
+  npm start -- --wiki <workbench-root> [--port 4175] [--host 127.0.0.1] [--author lewis]
 
 Options:
-  -w, --wiki     Path to the wiki root (required). The directory should
-                 contain a 'wiki/', 'audit/', and ideally 'log/' folder
-                 created by scripts/scaffold.py.
+  -w, --wiki     Path to the research workbench root (required). The directory
+                 should contain WORKBENCH.md plus canonical folders such as
+                 'compiled/', 'indexes/', 'audit/', and 'log/'.
   -p, --port     Port to listen on (default: 4175).
       --host     Host to bind to (default: 127.0.0.1 — local only).
       --author   Author name written into feedback files (default: $USER).

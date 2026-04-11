@@ -1,5 +1,5 @@
 /* ==========================================================================
-   LLM Wiki — Catppuccin Mocha + glassmorphism
+   Research Workbench — Catppuccin Mocha + glassmorphism
    ========================================================================== */
 
 /* Catppuccin Mocha palette */
@@ -56,9 +56,11 @@
   --sev-error:   var(--ctp-red);
 
   /* graph groups */
-  --grp-concepts:  var(--ctp-lavender);
-  --grp-entities:  var(--ctp-peach);
-  --grp-summaries: var(--ctp-teal);
+  --grp-projects:  var(--ctp-blue);
+  --grp-ideas:     var(--ctp-mauve);
+  --grp-knowledge: var(--ctp-teal);
+  --grp-people:    var(--ctp-peach);
+  --grp-review:    var(--ctp-yellow);
   --grp-other:     var(--ctp-overlay1);
 
   /* dims */
@@ -946,9 +948,11 @@ article h3:hover .header-anchor { opacity: 0.7; }
   opacity: 0.2;
   pointer-events: none;
 }
-#graph-svg .node.group-concepts  .node-halo { fill: var(--grp-concepts); }
-#graph-svg .node.group-entities  .node-halo { fill: var(--grp-entities); }
-#graph-svg .node.group-summaries .node-halo { fill: var(--grp-summaries); }
+#graph-svg .node.group-projects  .node-halo { fill: var(--grp-projects); }
+#graph-svg .node.group-ideas     .node-halo { fill: var(--grp-ideas); }
+#graph-svg .node.group-knowledge .node-halo { fill: var(--grp-knowledge); }
+#graph-svg .node.group-people    .node-halo { fill: var(--grp-people); }
+#graph-svg .node.group-review    .node-halo { fill: var(--grp-review); }
 #graph-svg .node.group-other     .node-halo { fill: var(--grp-other); }
 
 /* Node main circle */
@@ -957,9 +961,11 @@ article h3:hover .header-anchor { opacity: 0.7; }
   stroke-width: 1.4;
   transition: stroke-width 220ms ease;
 }
-#graph-svg .node.group-concepts  .node-main { fill: var(--grp-concepts); }
-#graph-svg .node.group-entities  .node-main { fill: var(--grp-entities); }
-#graph-svg .node.group-summaries .node-main { fill: var(--grp-summaries); }
+#graph-svg .node.group-projects  .node-main { fill: var(--grp-projects); }
+#graph-svg .node.group-ideas     .node-main { fill: var(--grp-ideas); }
+#graph-svg .node.group-knowledge .node-main { fill: var(--grp-knowledge); }
+#graph-svg .node.group-people    .node-main { fill: var(--grp-people); }
+#graph-svg .node.group-review    .node-main { fill: var(--grp-review); }
 #graph-svg .node.group-other     .node-main { fill: var(--grp-other); }
 
 /* Node group element (d3 sets transform) */
@@ -1027,9 +1033,11 @@ article h3:hover .header-anchor { opacity: 0.7; }
   border-radius: 50%;
   flex-shrink: 0;
 }
-.graph-legend .legend-dot.concepts  { background: var(--grp-concepts); }
-.graph-legend .legend-dot.entities  { background: var(--grp-entities); }
-.graph-legend .legend-dot.summaries { background: var(--grp-summaries); }
+.graph-legend .legend-dot.projects  { background: var(--grp-projects); }
+.graph-legend .legend-dot.ideas     { background: var(--grp-ideas); }
+.graph-legend .legend-dot.knowledge { background: var(--grp-knowledge); }
+.graph-legend .legend-dot.people    { background: var(--grp-people); }
+.graph-legend .legend-dot.review    { background: var(--grp-review); }
 .graph-legend .legend-dot.other     { background: var(--grp-other); }
 
 .graph-hint {

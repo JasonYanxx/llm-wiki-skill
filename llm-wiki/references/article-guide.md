@@ -1,255 +1,235 @@
-# Wiki Article Writing Guide
+# Compiled Object Writing Guide
 
-Guidelines for writing high-quality wiki articles. Read before compiling a new concept or entity page.
+Use this guide when creating or refreshing pages in `compiled/`.
+The goal is not to write neutral encyclopedia articles. The goal is to maintain reusable research objects that support the user's ongoing work.
 
-## Length targets
+## General rules
 
-| Page type | Target length | Notes |
-|-----------|--------------|-------|
-| Concept page | 400–1200 words | Dense, no padding. **Hard ceiling: 1200.** |
-| Folder-split `index.md` | 150–400 words | Definition + map of sub-pages |
-| Sub-page under a folder-split | 400–1200 words | Covers one aspect |
-| Entity page | 200–500 words | Factual, link-heavy |
-| Summary page | 150–400 words | Takeaways, not a rewrite |
+- Keep the fixed section structure stable for each object family.
+- Write with natural inline Obsidian links.
+- Make provenance visible in-page.
+- Use mermaid for flows, hierarchies, and state diagrams.
+- Use KaTeX for formulas.
+- Preserve human-owned sections such as `My Notes`.
 
-Avoid padding. A 400-word article that's dense beats an 800-word article with filler.
-
-## Divide and conquer — when to split
-
-If a concept page **would** exceed ~1200 words, do not write it as a single file. Split it:
-
-1. Create `wiki/concepts/<topic>/`.
-2. Write `wiki/concepts/<topic>/index.md`:
-   ```markdown
-   ---
-   title: <Topic>
-   type: concept
-   ...
-   ---
-
-   # <Topic>
-
-   <One-sentence definition.>
-
-   ## What it is
-
-   <150–300 words of overview.>
-
-   ## Sub-pages
-
-   - [[<Topic>/<aspect-1>]] — <one-line summary>
-   - [[<Topic>/<aspect-2>]] — <one-line summary>
-   - ...
-
-   ## Sources
-
-   - [[summaries/...]]
-   ```
-3. Write each `<aspect-N>.md` as a focused 400–1200 word page.
-4. Update `wiki/index.md` to show the hierarchy with indented bullets under the folder-split entry.
-
-Signs a page needs to be split:
-- Word count creeping past 1000.
-- Three or more `##` top-level sections, each with its own `###` subsections.
-- Multiple distinct concepts mentioned but not explored because there's no room.
-- You find yourself wanting to link to a specific section with `[[Page#Section]]` — that section probably deserves its own page.
-
-## Concept page structure
+## Project page template
 
 ```markdown
 ---
-title: <Title>
-type: concept
-created: YYYY-MM-DD
+title: <Project Title>
+type: project
+status: active | holding | done
 updated: YYYY-MM-DD
-sources: [slug1, slug2]
-tags: [tag1, tag2]
+repo_slug: <repo-slug>
+execution_entry: PROJECT.md | README.md | docs/index.md
+source_refs: [vault:raw/..., repo:<project-slug>/PROJECT.md]
+related_object_ids: [idea:..., knowledge:...]
 ---
 
-# <Title>
+# <Project Title>
 
-<One-sentence definition or core idea.>
+## Overview
 
-## What it is
+<What the project is and why it exists.>
 
-<Explain the concept clearly. Assume the reader is technically literate but unfamiliar with this specific topic.>
+## Status
 
-## How it works
+<Visible status summary matching frontmatter.>
 
-<Mechanism, process, or structure. Use a mermaid diagram if it's a flow, sequence, hierarchy, or state.>
+## Execution Entry
 
-```mermaid
-flowchart LR
-    A --> B --> C
+- Repo: `<repo-slug>`
+- Main entry: `<path>`
+
+## Related Objects
+
+- [[Related Idea]]
+- [[Related Knowledge]]
+
+## AI Compiled
+
+<Rolling AI-maintained summary of the project's current state.>
+
+## My Notes
+
+<!-- Human-owned. Compile must not rewrite. -->
+
+## Provenance
+
+<Natural prose with inline links to raw notes, repo control docs, and related pages.>
 ```
 
-## Key properties / tradeoffs
+## Idea page template
 
-<Bullet list or short paragraphs. Use KaTeX for any formula — inline `$...$` or block `$$...$$`.>
+```markdown
+---
+title: <Idea Title>
+type: idea
+status: spark | exploring | incubating | project-ready
+updated: YYYY-MM-DD
+proposition: <single proposition sentence>
+source_refs: [vault:raw/...]
+related_object_ids: [knowledge:..., project:...]
+---
 
-## Relationship to other concepts
+# <Idea Title>
 
-- [[Related Concept A]] — how they relate
-- [[Related Concept B]] — contrast or connection
+## Proposition
 
-## Open questions
+<One concrete research question, claim, or hypothesis.>
 
-<What this wiki doesn't yet know about this concept. Drives future ingest.>
+## Status
 
-## Sources
+<Visible state explanation.>
 
-- [[summaries/source-slug-1]] — (date) one-line description
-- [[summaries/source-slug-2]] — (date) one-line description
+## AI Judgment
+
+<What the idea is, what it connects to, what is unclear, and how close it is to project-ready.>
+
+## Related Objects
+
+- [[Related Project]]
+- [[Related Knowledge]]
+
+## My Notes
+
+<!-- Human-owned. -->
+
+## Provenance
+
+<Link back to the raw notes or prior compiled pages that gave rise to the idea.>
 ```
 
-## Entity page structure
+## Knowledge page template
+
+```markdown
+---
+title: <English Canonical Title>
+type: knowledge
+status: noticed | organized | retained
+updated: YYYY-MM-DD
+domain: <theme or domain>
+source_refs: [vault:raw/..., vault:compiled/projects/...]
+related_object_ids: [project:..., idea:...]
+---
+
+# <English Canonical Title>
+
+## Current Understanding
+
+<The user's current understanding, not a neutral dictionary definition.>
+
+## Why It Matters
+
+<Why this concept matters for the user's research agenda.>
+
+## Related Projects and Ideas
+
+- [[Project]]
+- [[Idea]]
+
+## AI Compiled Body
+
+<AI-maintained synthesis with natural inline links and visible traceability.>
+
+## Provenance
+
+<Key supporting sources and where this understanding came from.>
+```
+
+## People page template
 
 ```markdown
 ---
 title: <Name>
-type: entity
-entity_type: person | tool | paper | organization
-created: YYYY-MM-DD
+type: people
+status: active
 updated: YYYY-MM-DD
-sources: [slug1]
-tags: [tag1]
+role: <relationship role>
+affiliation: <institution or org>
+next_followup: YYYY-MM-DD | free text
+source_refs: [vault:raw/..., vault:compiled/projects/...]
+related_object_ids: [project:..., idea:..., knowledge:...]
 ---
 
 # <Name>
 
-<One-sentence description.>
+## Current Relationship
 
-## Key contributions / features
+<Who this person currently is in the user's world and why they matter now.>
 
-<What this entity is known for in the context of this wiki's topic.>
+## Academic Profile
 
-## Related concepts
+<External/public context plus research relevance.>
 
-- [[Concept A]] — connection
+## Related Objects
 
-## Sources
+- [[Project]]
+- [[Knowledge]]
 
-- [[summaries/source-slug]]
+## Recent Interactions
+
+<Recent interaction context.>
+
+## Next Follow-up
+
+<What the next follow-up should be.>
+
+## Provenance
+
+<Traceable links to raw notes, meeting notes, and other supporting material.>
 ```
 
-## Summary page structure
-
-Summaries are concise representations of a single source. They are not rewrites.
+## Review page template
 
 ```markdown
 ---
-title: summaries/<slug>
-type: summary
-source_url: https://...
-source_type: article | paper | gist | video | podcast | ref
-date: YYYY-MM-DD
-ingested: YYYY-MM-DD
-tags: [tag1]
+title: Review
+type: review
+status: active
+updated: YYYY-MM-DD
+source_refs: []
+related_object_ids: []
 ---
 
-# <Source Title>
+# Review
 
-**Source**: [<Author/Org>](<URL>) · <date>
+## Overview
 
-## Key takeaways
+<What changed in the queue and what needs attention now.>
 
-- <Most important insight 1>
-- <Most important insight 2>
-- <Most important insight 3>
+## Noticed
 
-## Core claims
+<Knowledge objects that entered the system but are not yet organized.>
 
-<2–4 sentences on the main argument or findings.>
+## Organized
 
-## Notable quotes
+<Knowledge objects that are linked and structured but not retained.>
 
-> "<exact quote>" — <attribution>
+## Retained
 
-## Concepts introduced / referenced
+<Knowledge objects that are now stable and reusable.>
 
-- [[Concept A]]
-- [[Entity B]]
+## Deferred
+
+<Items that are intentionally postponed.>
 ```
 
-## Diagrams — always mermaid
+## Writing style guidance
 
-ASCII art is banned. Any flow, sequence, hierarchy, or state diagram is mermaid. Examples:
+- Projects: concise control-page prose, not task-spam.
+- Ideas: preserve ambiguity where needed; do not over-formalize too early.
+- Knowledge: write for the user's research context, not for a generic audience.
+- People: maintain relationship memory and academic context at the same time.
+- Review: keep it action-oriented; every entry should imply the next best move.
 
-Flow:
-````markdown
-```mermaid
-flowchart TB
-    source[raw/article.md] --> ingest
-    ingest --> summary[wiki/summaries/...]
-    ingest --> concept[wiki/concepts/...]
-    concept --> index[wiki/index.md]
-```
-````
+## Provenance guidance
 
-Sequence:
-````markdown
-```mermaid
-sequenceDiagram
-    User->>Web: select text + comment
-    Web->>Server: POST /api/audit
-    Server->>FS: write audit/*.md
-    Server-->>User: audit id
-```
-````
+Good provenance feels readable:
+- `This understanding mainly came from [[raw/external/papers/foo]] and was sharpened during [[compiled/projects/bar/index|Bar]].`
+- `The idea first appeared in [[raw/daily/2026-04-11]] and later connected to [[Calibration]].`
 
-State:
-````markdown
-```mermaid
-stateDiagram-v2
-    [*] --> open
-    open --> resolved: audit op
-    open --> deferred: add to Open Questions
-```
-````
-
-## Formulas — always KaTeX
-
-Inline: `The loss is $\mathcal{L}(\theta) = \sum_i \ell(f_\theta(x_i), y_i)$.`
-
-Block:
-```markdown
-$$
-\mathcal{L}(\theta) = \frac{1}{N}\sum_{i=1}^{N} \ell\bigl(f_\theta(x_i), y_i\bigr) + \lambda \|\theta\|_2^2
-$$
-```
-
-The web viewer renders math server-side with KaTeX. Obsidian renders it natively.
-
-## Wikilink rules
-
-1. **Link first mention** of every entity or concept — don't wait for "a natural place".
-2. **Link maximum twice per article** — don't over-link the same page.
-3. **Link concepts that exist** — check `wiki/index.md` before creating a new link target.
-4. **For folder-split pages**, link the index with an alias: `[[concepts/Foo/index|Foo]]`.
-5. **Backlink audit** — after writing a new article, grep existing articles for the new page's title and add incoming links.
-
-## Handling contradictions between sources
-
-When two sources contradict each other:
-
-1. State both claims explicitly.
-2. Note which source supports each claim.
-3. Add to the article's "Open questions" section **and** the wiki's `CLAUDE.md` research questions.
-4. Do NOT silently pick one — contradictions are valuable signal.
-
-Example:
-> Source A (2024) claims X. Source B (2026) claims Y, which contradicts A. It's unclear whether this reflects a methodological difference or an error in one source. See [[summaries/source-a]] and [[summaries/source-b]].
-
-If a human later files an `audit` comment resolving the contradiction, update the article and move the audit to `audit/resolved/` with a resolution note.
-
-## Incorporating audit feedback
-
-When processing an open audit that targets an article you're editing:
-
-1. Locate the anchor using `anchor_before` / `anchor_text` / `anchor_after`.
-2. Apply the correction in the smallest edit that fixes the issue.
-3. Bump the `updated:` field in the frontmatter.
-4. Add a line to the `# Resolution` section of the audit file explaining what changed.
-5. Move the audit file to `audit/resolved/`.
-6. Log the resolution under the current day's `log/YYYYMMDD.md`.
-
+Bad provenance feels bolted on:
+- giant detached citation dumps
+- no visible traceability
+- links that only appear in frontmatter and nowhere in the page body
