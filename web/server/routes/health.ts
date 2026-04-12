@@ -36,8 +36,15 @@ export function handleHealth(cfg: ServerConfig) {
 function readHealth(wikiRoot: string): HealthResponse {
   const opsPath = path.join(wikiRoot, "compiled", "_meta", "ops.json");
   const homePath = path.join(wikiRoot, "indexes", "Home.md");
+  const workbenchPath = path.join(wikiRoot, "WORKBENCH.md");
   const missingInputs: string[] = [];
+  if (!fs.existsSync(workbenchPath)) {
+    missingInputs.push("WORKBENCH.md missing");
+  }
   const homeText = fs.existsSync(homePath) ? fs.readFileSync(homePath, "utf-8") : "";
+  if (!fs.existsSync(homePath)) {
+    missingInputs.push("indexes/Home.md missing");
+  }
   const focus = parseCurrentFocus(homeText);
   for (const key of CURRENT_FOCUS_KEYS) {
     if (!String(focus[key] ?? "").trim()) {
@@ -48,19 +55,16 @@ function readHealth(wikiRoot: string): HealthResponse {
   const openAuditCount = countOpenAudits(wikiRoot);
   const fallback: HealthResponse = {
     hasOps: false,
-    maintenanceMode: missingInputs.length === 0 ? "ready" : "blocked",
-    currentFocusOk: missingInputs.length === 0,
-    missingInputs,
+    maintenanceMode: "blocked",
+    currentFocusOk: !missingInputs.some((item) => item.startsWith("Current Focus /")),
+    missingInputs: [...missingInputs, "compiled/_meta/ops.json missing"],
     openAuditCount,
     pendingRepoBridge: [],
     delta: { rawPaths: [], promoteCandidates: [] },
     lastSuccessfulLoopAt: null,
     lastLintStatus: "unknown",
     generatedAt: null,
-    summary:
-      missingInputs.length === 0
-        ? "尚未找到 ops.json，但 Current Focus 已填写，可以先运行 preflight。"
-        : "尚未找到 ops.json，且 Current Focus 仍不完整，请先补齐再运行 preflight。",
+    summary: "当前工作台尚未完成 preflight：请先生成 `compiled/_meta/ops.json`。",
   };
 
   if (!fs.existsSync(opsPath)) return fallback;

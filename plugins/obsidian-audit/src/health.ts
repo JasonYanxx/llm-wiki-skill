@@ -54,16 +54,14 @@ export async function readWorkbenchHealth(
   if (!(opsFile instanceof TFile)) {
     return {
       hasOps: false,
-      maintenanceMode: currentFocusOk ? "ready" : "blocked",
+      maintenanceMode: "blocked",
       currentFocusOk,
-      missingInputs,
+      missingInputs: [...missingInputs, "compiled/_meta/ops.json missing"],
       pendingRepoBridge: [],
       openAuditCount,
       lastLintStatus: "unknown",
       lastSuccessfulLoopAt: null,
-      summary: currentFocusOk
-        ? "尚未生成 ops.json，但 Current Focus 已填写，可以先运行 preflight。"
-        : "当前工作台尚未就绪：请先补齐 Current Focus，再运行 preflight。",
+      summary: "当前工作台尚未完成 preflight：请先生成 `compiled/_meta/ops.json`。",
     };
   }
 

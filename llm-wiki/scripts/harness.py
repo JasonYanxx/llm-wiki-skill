@@ -127,13 +127,25 @@ def run_postflight(root: Path) -> int:
     if preflight_at is None:
         issues.append("ops.generated_at missing or invalid; run preflight again")
 
+    preflight_delta = ops.get("delta", {}) if isinstance(ops, dict) else {}
+    preflight_raw_paths = list(preflight_delta.get("raw_paths", [])) if isinstance(preflight_delta, dict) else []
+    preflight_promote_candidates = (
+        list(preflight_delta.get("promote_candidates", []))
+        if isinstance(preflight_delta, dict)
+        else []
+    )
+    preflight_open_audits = int(ops.get("open_audit_count", 0)) if isinstance(ops, dict) else 0
+    had_backlog = bool(preflight_raw_paths or preflight_promote_candidates or preflight_open_audits)
+
     log_touched = was_log_touched_since(root, preflight_at)
     registry_touched = was_file_touched_since(root / "compiled/_meta/registry.json", preflight_at)
     review_touched = was_file_touched_since(root / "compiled/review/Review.md", preflight_at)
+    followthrough_paths = collect_followthrough_paths(root, preflight_at)
+    followthrough_ok = (not had_backlog) or bool(followthrough_paths)
 
     ops = build_ops_state(root, existing_ops=ops)
     ops["last_lint_status"] = "pass" if lint_exit == 0 else "fail"
-    if lint_exit == 0 and preflight_at is not None and log_touched:
+    if lint_exit == 0 and preflight_at is not None and log_touched and followthrough_ok:
         ops["last_successful_loop_at"] = datetime.now().isoformat()
     write_ops(root, ops)
 
@@ -141,7 +153,11 @@ def run_postflight(root: Path) -> int:
     print(f"- log 已追加: {'yes' if log_touched else 'no'}")
     print(f"- registry 已更新: {'yes' if registry_touched else 'no'}")
     print(f"- review 已更新: {'yes' if review_touched else 'no'}")
+    print(f"- 有效跟进输出: {'yes' if followthrough_paths else 'no'}")
     print(f"- lint 结果: {ops['last_lint_status']}")
+    if followthrough_paths:
+        for rel in followthrough_paths[:10]:
+            print(f"  - {rel}")
 
     failure_reasons: list[str] = []
     if lint_exit != 0:
@@ -150,6 +166,10 @@ def run_postflight(root: Path) -> int:
         failure_reasons.append("log not updated after preflight")
     if ops["maintenance_mode"] != "ready":
         failure_reasons.append("workbench still blocked")
+    if had_backlog and not followthrough_paths:
+        failure_reasons.append(
+            "backlog still has no compiled/index/review/query/audit follow-through after preflight"
+        )
 
     if failure_reasons:
         print("\n本轮尚未构成成功闭环:")
@@ -410,6 +430,34 @@ def was_file_touched_since(path: Path, since: datetime | None) -> bool:
     if since is None or not path.exists():
         return False
     return datetime.fromtimestamp(path.stat().st_mtime) >= since
+
+
+def collect_followthrough_paths(root: Path, since: datetime | None) -> list[str]:
+    if since is None:
+        return []
+
+    touched: list[str] = []
+    candidate_roots = [
+        root / "compiled",
+        root / "indexes",
+        root / "outputs" / "queries",
+        root / "audit",
+    ]
+
+    for base in candidate_roots:
+        if not base.exists():
+            continue
+        for path in sorted(base.rglob("*")):
+            if not path.is_file():
+                continue
+            if path.name.startswith(".") or path.name == ".gitkeep":
+                continue
+            rel = path.relative_to(root).as_posix()
+            if rel == "compiled/_meta/ops.json":
+                continue
+            if datetime.fromtimestamp(path.stat().st_mtime) >= since:
+                touched.append(rel)
+    return touched
 
 
 if __name__ == "__main__":
