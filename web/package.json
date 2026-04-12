@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Local research workbench viewer plus audit feedback server.",
+  "description": "本地 research workbench viewer，支持 health 展示、对象图浏览与 anchored audit feedback。",
   "scripts": {
     "build": "node build-client.mjs",
     "prestart": "npm run build",

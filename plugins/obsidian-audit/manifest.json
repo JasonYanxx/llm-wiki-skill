@@ -1,9 +1,9 @@
 {
   "id": "llm-wiki-audit",
-  "name": "Research Workbench Audit",
+  "name": "Research Workbench Audit 研究工作台审阅",
   "version": "0.1.0",
   "minAppVersion": "1.4.0",
-  "description": "Select text in any workbench page, leave a comment, and write it as an anchored audit file for the research workbench `audit` operation.",
+  "description": "在 workbench 页面中选中文本、留下评论，并将其写成 anchored audit 文件，用于 research workbench 的 `audit` 操作。",
   "author": "Lewis Liu",
   "authorUrl": "https://github.com/lewisliu",
   "isDesktopOnly": false

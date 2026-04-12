@@ -291,6 +291,99 @@ main { grid-area: main; }
   padding: 14px 14px 20px;
 }
 
+.side-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.side-section + .side-section {
+  border-top: 1px solid var(--border-soft);
+}
+
+#sidebar-right .side-section:last-child {
+  flex: 1 1 auto;
+}
+
+#health-status {
+  overflow-y: auto;
+  padding: 12px 14px 18px;
+}
+
+.health-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.health-head,
+.health-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--fg-muted);
+}
+
+.health-meta {
+  color: var(--fg-soft);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-pill.ready {
+  color: var(--ctp-crust);
+  background: var(--ctp-green);
+}
+
+.status-pill.blocked {
+  color: var(--ctp-crust);
+  background: var(--ctp-red);
+}
+
+.health-summary {
+  color: var(--fg);
+  line-height: 1.45;
+}
+
+.health-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.health-label {
+  color: var(--fg-strong);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.health-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--fg-muted);
+}
+
+.health-list li + li {
+  margin-top: 4px;
+}
+
+.health-empty {
+  color: var(--fg-soft);
+}
+
 /* nav tree */
 #tree ul {
   list-style: none;

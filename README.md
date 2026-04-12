@@ -1,103 +1,156 @@
 # llm-wiki-skill
 
-**An agent skill and tooling stack for an AI-maintained Obsidian research workbench.**
+一个用于构建与维护 **AI-maintained Obsidian research workbench** 的源码仓库。
 
-This project started from the Karpathy-style `llm-wiki` pattern and is being evolved into a research workbench centered on:
-- low-friction raw capture
-- compiled research objects
-- audit-driven correction
-- registry-aware maintenance
-- weekly compile/review loops
+这个仓库现在的定位不是“某个具体 vault 本身”，而是：
+- **项目仓库**：维护 harness 源码、脚本、web viewer、Obsidian audit plugin
+- **`llm-wiki` skill**：约束 Codex 如何维护 workbench
+- **Obsidian vault**：真正被维护的 runtime target
 
-The canonical model is now:
+Codex 真正维护 Obsidian 的入口，始终在 vault 内：
 - `WORKBENCH.md`
-- `raw/`
-- `compiled/`
-- `indexes/`
-- `outputs/`
-- `audit/`
-- `log/`
+- `indexes/Home.md`
 
-The registry contract now includes:
-- `compiled/_meta/registry.json`
-- `meta.repo_roots`: a mapping of `repo_slug -> local repo path`
+不是这个项目仓库根目录，也不是 Obsidian app 本身。
 
-`repo:` source refs keep the form `repo:<project-slug>/<path-inside-repo>` and are resolved through `meta.repo_roots`.
+## v2 目标
 
-Legacy `CLAUDE.md` and `wiki/` material may still be used as migration input, but they are no longer canonical truth.
+当前版本把项目从“schema + scaffold + lint + skill 文档”升级成了一个更完整的 **maintenance harness**：
+- 强制 `Current Focus`
+- 固定维护状态机：`preflight -> ingest -> compile -> review -> promote -> lint -> audit -> postflight`
+- 机器可读运行状态：`compiled/_meta/ops.json`
+- 中文优先的 vault-facing 模板与文案
+- repo-aware 桥接门槛化
+- web / plugin 读取统一 health 状态
 
-## What is included
+## 中文优先合同
 
-- `llm-wiki/` — the skill, references, and Python helper scripts
-- `plugins/obsidian-audit/` — Obsidian audit plugin for anchored feedback
-- `web/` — local viewer for `indexes/` and `compiled/`, plus audit filing and graph browsing
-- `audit-shared/` — shared schema and anchor logic used by the web viewer and the Obsidian plugin
+这个项目默认支持的 vault profile 是：
+- **正文、导航、review、log、prompt 模板以中文为主**
+- 英文只保留在稳定命名层：
+  - canonical 文件名 / slug
+  - registry `id / type / path`
+  - `ops.json` key
+  - status enum
+  - 必要的 canonical title
 
-## Install the skill
+## 仓库内容
+
+- `llm-wiki/`
+  - `SKILL.md`：Codex 维护协议
+  - `references/`：schema、harness、对象写作、audit、log、tooling、prompt 模板
+  - `scripts/`
+    - `scaffold.py`
+    - `harness.py`
+    - `lint_wiki.py`
+    - `audit_review.py`
+- `plugins/obsidian-audit/`
+  - Obsidian 内的 anchored audit 工具
+  - 保持 audit-focused，不承担 canonical maintenance
+- `web/`
+  - 本地 viewer
+  - 浏览 `indexes/` 与 `compiled/`
+  - 展示 workbench health / graph / audits
+- `audit-shared/`
+  - web 与插件共用的 anchored audit schema
+
+## Runtime Contract
+
+scaffold 出来的 workbench 采用：
+
+```text
+<workbench-root>/
+├── WORKBENCH.md
+├── .gitignore
+├── raw/
+├── compiled/
+│   ├── _meta/
+│   │   ├── registry.json
+│   │   └── ops.json
+│   └── ...
+├── indexes/
+├── outputs/
+├── audit/
+└── log/
+```
+
+其中：
+- `compiled/_meta/registry.json` 是 compiled object registry
+- `compiled/_meta/ops.json` 是 harness runtime state
+
+## 安装 skill
 
 ```bash
 cp -r llm-wiki/ ~/.codex/skills/llm-wiki/
 ```
 
-Then reference `llm-wiki/SKILL.md` in your agent context.
+安装后，Codex 维护任何 workbench 时都应以 `llm-wiki/SKILL.md` 为协议入口。
 
-## Quick start
+## Quick Start
 
 ```bash
-# 1. Scaffold a new workbench
-python3 llm-wiki/scripts/scaffold.py ~/my-workbench "My Research Workbench"
+# 1. Scaffold 一个新的 workbench
+python3 llm-wiki/scripts/scaffold.py ~/my-workbench "我的研究工作台"
 
-# 2. Capture new material into raw/
-#    e.g. raw/inbox/, raw/daily/, raw/external/papers/
+# 2. 填写 indexes/Home.md 里的 Current Focus
 
-# 3. Ask your agent to ingest/compile/review against the new workbench
+# 3. 运行 preflight，生成/刷新 ops.json
+python3 llm-wiki/scripts/harness.py preflight ~/my-workbench
 
-# 4. Run lint periodically
+# 4. 让 Codex 按 SKILL.md 执行 ingest / compile / review
+
+# 5. 跑 lint
 python3 llm-wiki/scripts/lint_wiki.py ~/my-workbench
 
-# 5. Review open audits
+# 6. 结束后跑 postflight
+python3 llm-wiki/scripts/harness.py postflight ~/my-workbench
+
+# 7. 检查 open audits
 python3 llm-wiki/scripts/audit_review.py ~/my-workbench --open
 ```
 
-## Repo contents
+## Harness CLI
 
-```text
-llm-wiki-skill/
-├── llm-wiki/
-│   ├── SKILL.md
-│   ├── references/
-│   │   ├── schema-guide.md
-│   │   ├── article-guide.md
-│   │   ├── log-guide.md
-│   │   ├── audit-guide.md
-│   │   └── tooling-tips.md
-│   └── scripts/
-│       ├── scaffold.py
-│       ├── lint_wiki.py
-│       └── audit_review.py
-├── audit-shared/
-├── plugins/obsidian-audit/
-└── web/
+```bash
+python3 llm-wiki/scripts/harness.py preflight <workbench-root>
+python3 llm-wiki/scripts/harness.py health <workbench-root>
+python3 llm-wiki/scripts/harness.py postflight <workbench-root>
 ```
 
-## Web viewer
+### `preflight`
+
+- 校验 `WORKBENCH.md` 与 `indexes/Home.md`
+- 强制检查 `Current Focus` 的 4 个键
+- 发现近期 raw delta / promote candidates / pending repo bridge
+- 写入 `compiled/_meta/ops.json`
+
+### `health`
+
+- 输出统一健康状态摘要
+- 供 CLI、web、plugin 消费相同状态模型
+
+### `postflight`
+
+- 验证本轮是否形成真实维护闭环
+- 运行 lint
+- 检查 log 是否更新
+- 更新 `ops.json` 中的 `last_successful_loop_at`
+
+## Web Viewer
 
 ```bash
 cd audit-shared && npm install && npm run build && cd ..
-cd web && npm install && npm run build && cd ..
-cd web
+cd web && npm install && npm run build
 npm start -- --wiki "/path/to/your/workbench-root" --port 4175
 ```
 
-Open `http://127.0.0.1:4175`.
+它是次级界面，不是 canonical 编辑入口。主要负责：
+- 浏览 `indexes/` 与 `compiled/`
+- 展示 workbench health
+- 浏览 compiled object graph
+- 提交 anchored audit
 
-The web viewer is intentionally a secondary browsing surface. It focuses on:
-- `indexes/`
-- `compiled/`
-- graph browsing for compiled objects
-- anchored audit filing
-
-## Obsidian plugin
+## Obsidian Audit Plugin
 
 ```bash
 cd audit-shared && npm install && npm run build && cd ..
@@ -107,11 +160,21 @@ npm run build
 npm run link -- "/path/to/your/Obsidian vault"
 ```
 
-Then enable **Research Workbench Audit** in Obsidian community plugins.
+插件只做一件事：在 Obsidian 里提交 anchored audit，并读取 workbench health 提醒你当前入口是否就绪。  
+真正的维护入口仍然是 vault 内的 `WORKBENCH.md + indexes/Home.md`。
 
-## Notes
+## Repo-aware Contract
 
-- Existing technical IDs and script paths are kept stable for compatibility.
-- The web `--wiki` flag still points at the workbench root.
-- Repo-aware project signals in v1 should stay limited to explicit control docs such as `PROJECT.md`, `README.md`, or `docs/index.md`.
-- To enable repo-backed stale checks in lint, keep `compiled/_meta/registry.json.meta.repo_roots` updated with local repo roots.
+- `registry.meta.repo_roots` 只接受用户确认的本地 repo 根路径
+- `repo:` source refs 只链接显式执行入口：
+  - `PROJECT.md`
+  - `README.md`
+  - `docs/index.md`
+- 不做自动 repo 发现
+
+## 兼容性
+
+- 保留 `llm-wiki` 这个技术 ID
+- 保留脚本路径
+- 保留 web `--wiki` flag
+- 旧 `CLAUDE.md` 与 `wiki/` 仍可作为迁移输入读取，但不再是 canonical truth

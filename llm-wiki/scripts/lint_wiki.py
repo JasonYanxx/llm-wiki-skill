@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-lint_wiki.py — Health check for a Research Workbench.
+lint_wiki.py — Structural + harness-readiness health check for a Research Workbench.
 
 Usage:
     python3 lint_wiki.py <workbench-root>
@@ -8,13 +8,15 @@ Usage:
 Checks:
   1. Canonical root shape (`WORKBENCH.md`, `compiled/`, `indexes/`, registry)
   2. Registry validity and registry/page drift
-  3. Missing or incomplete generated index coverage
-  4. Missing provenance sections on compiled pages
-  5. Disconnected compiled objects
-  6. Stale compiled pages whose source refs changed
-  7. Unresolved wikilinks in compiled/index pages
-  8. log/ shape
-  9. audit/ shape and audit target validity
+  3. `ops.json` plus `Current Focus` readiness
+  4. Missing or incomplete generated index coverage
+  5. Chinese-first profile and local noise policy
+  6. Missing provenance sections on compiled pages
+  7. Disconnected compiled objects
+  8. Stale compiled pages whose source refs changed
+  9. Unresolved wikilinks in compiled/index pages
+  10. log/ shape
+  11. audit/ shape and audit target validity
 
 Exit codes:
   0 — no issues found
@@ -48,6 +50,19 @@ REGISTRY_REQUIRED_FIELDS = {
     "related_object_ids",
 }
 VALID_TYPES = {"project", "idea", "knowledge", "people", "review"}
+OPS_REQUIRED_FIELDS = {
+    "generated_at",
+    "current_focus_ok",
+    "missing_inputs",
+    "maintenance_mode",
+    "delta",
+    "open_audit_count",
+    "pending_repo_bridge",
+    "last_successful_loop_at",
+    "last_lint_status",
+}
+VALID_MAINTENANCE_MODES = {"blocked", "ready"}
+VALID_LINT_STATUSES = {"unknown", "pass", "fail"}
 INDEX_BY_TYPE = {
     "project": "indexes/Projects.md",
     "idea": "indexes/Ideas.md",
@@ -63,6 +78,23 @@ HOME_REQUIRED_HEADINGS = [
     "People",
     "Recent Changes",
 ]
+CURRENT_FOCUS_KEYS = [
+    "Primary active project",
+    "Current blocker",
+    "Primary repo jump point",
+    "Immediate next push",
+]
+CHINESE_PROFILE_TARGETS = [
+    "WORKBENCH.md",
+    "indexes/Home.md",
+    "indexes/Projects.md",
+    "indexes/Ideas.md",
+    "indexes/Knowledge.md",
+    "indexes/People.md",
+    "indexes/Review.md",
+    "compiled/review/Review.md",
+]
+CJK_RE = re.compile(r"[\u3400-\u9fff]")
 
 AUDIT_REQUIRED_FIELDS = {
     "id",
@@ -172,6 +204,29 @@ def parse_frontmatter(text: str) -> dict | None:
     return result
 
 
+def parse_current_focus(text: str) -> dict[str, str]:
+    lines = text.splitlines()
+    in_section = False
+    section_lines: list[str] = []
+    for line in lines:
+        if re.match(r"^##\s+", line):
+            if in_section:
+                break
+            if line.strip() == "## Current Focus":
+                in_section = True
+            continue
+        if in_section:
+            section_lines.append(line)
+
+    result: dict[str, str] = {}
+    for line in section_lines:
+        match = re.match(r"^\s*-\s*([^:]+):\s*(.*)\s*$", line)
+        if not match:
+            continue
+        result[match.group(1).strip()] = match.group(2).strip()
+    return result
+
+
 def load_registry(path: Path) -> tuple[dict | None, list[str]]:
     issues: list[str] = []
     if not path.exists():
@@ -213,6 +268,41 @@ def load_registry(path: Path) -> tuple[dict | None, list[str]]:
             issues.append(f"{prefix}.source_refs must be an array")
         if not isinstance(obj.get("related_object_ids", []), list):
             issues.append(f"{prefix}.related_object_ids must be an array")
+    return data, issues
+
+
+def load_ops(path: Path) -> tuple[dict | None, list[str]]:
+    issues: list[str] = []
+    if not path.exists():
+        return None, [f"{path} is missing"]
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as err:
+        return None, [f"{path} is not valid JSON: {err}"]
+
+    if not isinstance(data, dict):
+        return None, [f"{path} must contain a top-level object"]
+
+    missing = OPS_REQUIRED_FIELDS - set(data.keys())
+    if missing:
+        issues.append(f"ops.json missing fields: {', '.join(sorted(missing))}")
+
+    if data.get("maintenance_mode") not in VALID_MAINTENANCE_MODES:
+        issues.append(f"ops.json has invalid maintenance_mode `{data.get('maintenance_mode')}`")
+    if data.get("last_lint_status") not in VALID_LINT_STATUSES:
+        issues.append(f"ops.json has invalid last_lint_status `{data.get('last_lint_status')}`")
+    if not isinstance(data.get("missing_inputs"), list):
+        issues.append("ops.json `missing_inputs` must be a list")
+    if not isinstance(data.get("pending_repo_bridge"), list):
+        issues.append("ops.json `pending_repo_bridge` must be a list")
+    if not isinstance(data.get("delta"), dict):
+        issues.append("ops.json `delta` must be an object")
+    else:
+        delta = data["delta"]
+        if not isinstance(delta.get("raw_paths"), list):
+            issues.append("ops.json `delta.raw_paths` must be a list")
+        if not isinstance(delta.get("promote_candidates"), list):
+            issues.append("ops.json `delta.promote_candidates` must be a list")
     return data, issues
 
 
@@ -282,6 +372,7 @@ def lint(root: str) -> int:
         "WORKBENCH.md",
         "compiled",
         "compiled/_meta/registry.json",
+        "compiled/_meta/ops.json",
         "indexes",
         "audit",
         "log",
@@ -346,13 +437,47 @@ def lint(root: str) -> int:
     else:
         print("✅ Registry valid and aligned with compiled pages")
 
-    # ── Pass 3: index coverage and home structure ─────────────────────────
+    # ── Pass 3: ops.json and Current Focus readiness ─────────────────────
+    ops_path = root_path / "compiled/_meta/ops.json"
+    ops, ops_schema_issues = load_ops(ops_path)
+    runtime_issues: list[str] = list(ops_schema_issues)
+
+    home_path = "indexes/Home.md"
+    home_text = (root_path / home_path).read_text(encoding="utf-8") if (root_path / home_path).exists() else ""
+    focus_fields = parse_current_focus(home_text) if home_text else {}
+    missing_focus_keys = [key for key in CURRENT_FOCUS_KEYS if not focus_fields.get(key, "").strip()]
+    for key in missing_focus_keys:
+        runtime_issues.append(f"indexes/Home.md has empty Current Focus field `{key}`")
+
+    expected_focus_ok = not missing_focus_keys
+    if ops is not None:
+        if ops.get("current_focus_ok") != expected_focus_ok:
+            runtime_issues.append(
+                "ops.json `current_focus_ok` does not match indexes/Home.md Current Focus readiness"
+            )
+        if expected_focus_ok and ops.get("maintenance_mode") == "blocked":
+            runtime_issues.append(
+                "ops.json keeps `maintenance_mode` blocked even though Current Focus is filled"
+            )
+        if not expected_focus_ok and ops.get("maintenance_mode") != "blocked":
+            runtime_issues.append(
+                "ops.json should be `blocked` while required Current Focus fields are empty"
+            )
+
+    if runtime_issues:
+        print(f"\n🔴 Harness readiness issues ({len(runtime_issues)}):")
+        for item in runtime_issues:
+            print(f"   {item}")
+        issues += len(runtime_issues)
+    else:
+        print("✅ Harness readiness OK")
+
+    # ── Pass 4: index coverage and home structure ─────────────────────────
     index_issues: list[str] = []
     index_texts = {
         p.relative_to(root_path).as_posix(): p.read_text(encoding="utf-8")
         for p in index_files
     }
-    home_path = "indexes/Home.md"
     home_text = index_texts.get(home_path, "")
     if not home_text:
         index_issues.append("missing indexes/Home.md")
@@ -394,7 +519,33 @@ def lint(root: str) -> int:
     else:
         print("✅ Index coverage OK")
 
-    # ── Pass 4: provenance sections ───────────────────────────────────────
+    # ── Pass 5: Chinese-first profile and local noise policy ─────────────
+    profile_issues: list[str] = []
+    for rel in CHINESE_PROFILE_TARGETS:
+        path = root_path / rel
+        if not path.exists() or not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        if CJK_RE.search(text) is None:
+            profile_issues.append(f"`{rel}` should be Chinese-first but currently contains no Chinese text")
+
+    gitignore_path = root_path / ".gitignore"
+    if not gitignore_path.exists():
+        profile_issues.append("missing `.gitignore` at the workbench root")
+    else:
+        gitignore_text = gitignore_path.read_text(encoding="utf-8")
+        if ".obsidian/graph.json" not in gitignore_text:
+            profile_issues.append("`.gitignore` should ignore `.obsidian/graph.json`")
+
+    if profile_issues:
+        print(f"\n🟡 Profile / noise policy issues ({len(profile_issues)}):")
+        for item in profile_issues:
+            print(f"   {item}")
+        issues += len(profile_issues)
+    else:
+        print("✅ Chinese-first profile and local noise policy OK")
+
+    # ── Pass 6: provenance sections ───────────────────────────────────────
     provenance_issues = []
     for path in compiled_files:
         if path.relative_to(root_path).as_posix() == "compiled/review/Review.md":
@@ -410,7 +561,7 @@ def lint(root: str) -> int:
     else:
         print("✅ All compiled pages include a Provenance section")
 
-    # ── Pass 5: disconnected compiled objects ─────────────────────────────
+    # ── Pass 7: disconnected compiled objects ─────────────────────────────
     compiled_lookup = {
         rel: path for rel, path in page_lookup.items()
         if isinstance(path, Path) and "compiled" in path.relative_to(root_path).parts
@@ -456,7 +607,7 @@ def lint(root: str) -> int:
     else:
         print("✅ No disconnected compiled objects")
 
-    # ── Pass 6: stale compiled pages ──────────────────────────────────────
+    # ── Pass 8: stale compiled pages ──────────────────────────────────────
     registry_meta = registry.get("meta", {}) if isinstance(registry, dict) else {}
     repo_roots = registry_meta.get("repo_roots", {}) if isinstance(registry_meta, dict) else {}
     if not isinstance(repo_roots, dict):
@@ -505,7 +656,7 @@ def lint(root: str) -> int:
         if not source_ref_issues:
             print("✅ No stale compiled pages detected from vault or repo source refs")
 
-    # ── Pass 7: unresolved wikilinks ──────────────────────────────────────
+    # ── Pass 9: unresolved wikilinks ──────────────────────────────────────
     link_issues: list[str] = []
     page_scan_files = root_markdown_files + compiled_files + index_files
     for path in page_scan_files:
@@ -527,7 +678,7 @@ def lint(root: str) -> int:
     else:
         print("✅ No unresolved wikilinks in compiled/index pages")
 
-    # ── Pass 8: log shape ─────────────────────────────────────────────────
+    # ── Pass 10: log shape ────────────────────────────────────────────────
     log_path = root_path / "log"
     log_issues: list[str] = []
     if log_path.exists() and log_path.is_dir():
@@ -554,7 +705,7 @@ def lint(root: str) -> int:
     else:
         print("✅ log/ shape OK")
 
-    # ── Pass 9: audit shape and targets ───────────────────────────────────
+    # ── Pass 11: audit shape and targets ──────────────────────────────────
     audit_dir = root_path / "audit"
     audit_issues: list[str] = []
     if audit_dir.exists() and audit_dir.is_dir():

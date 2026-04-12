@@ -72,7 +72,7 @@ export function installFeedbackUI(opts: FeedbackUIOptions): void {
     const offsets = resolveSelectionToRawOffsets(rawMarkdown, range, text);
     if (!offsets) {
       alert(
-        "Couldn't locate the selection in the source markdown. Try selecting plain text only (no rendered symbols).",
+        "无法在源 markdown 中定位这段选区。请尽量只选择纯文本，而不要选中渲染后的符号。",
       );
       return;
     }
@@ -98,7 +98,7 @@ export function installFeedbackUI(opts: FeedbackUIOptions): void {
       "warn";
     const comment = textarea.value.trim();
     if (!comment) {
-      alert("Comment is empty");
+      alert("评论内容不能为空");
       return;
     }
     const { currentPath, rawMarkdown, author } = opts.getState();
@@ -118,14 +118,14 @@ export function installFeedbackUI(opts: FeedbackUIOptions): void {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(`Failed to save feedback: ${err.error ?? res.statusText}`);
+        alert(`保存审阅失败：${err.error ?? res.statusText}`);
         return;
       }
       dialog.close();
       pending = null;
       await opts.onCreated();
     } catch (err) {
-      alert(`Error: ${String(err)}`);
+      alert(`发生错误：${String(err)}`);
     }
   });
 }
