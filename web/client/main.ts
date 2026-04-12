@@ -13,6 +13,23 @@ interface PageResponse {
   frontmatter: Record<string, unknown> | null;
 }
 
+interface HealthResponse {
+  hasOps: boolean;
+  maintenanceMode: "blocked" | "ready";
+  currentFocusOk: boolean;
+  missingInputs: string[];
+  openAuditCount: number;
+  pendingRepoBridge: string[];
+  delta: {
+    rawPaths: string[];
+    promoteCandidates: string[];
+  };
+  lastSuccessfulLoopAt: string | null;
+  lastLintStatus: string;
+  generatedAt: string | null;
+  summary: string;
+}
+
 const state = {
   currentPath: "indexes/Home.md" as string,
   rawMarkdown: "" as string,
@@ -86,6 +103,7 @@ async function main() {
 
   // Initial page.
   const initial = new URL(window.location.href).searchParams.get("page") ?? "indexes/Home.md";
+  await loadHealth();
   await loadPage(initial);
 
   window.addEventListener("popstate", (e) => {
@@ -113,6 +131,7 @@ async function main() {
   // Refresh audits button.
   document.getElementById("btn-refresh")!.addEventListener("click", () => {
     void loadAudits(state.currentPath);
+    void loadHealth();
   });
 
   // Graph toggle.
@@ -175,6 +194,7 @@ async function main() {
     getState: () => ({ currentPath: state.currentPath, rawMarkdown: state.rawMarkdown, author: state.author }),
     onCreated: async () => {
       await loadAudits(state.currentPath);
+      await loadHealth();
     },
   });
 }
@@ -188,12 +208,12 @@ function isEditableFocused(): boolean {
 
 async function loadPage(pathArg: string): Promise<void> {
   const pageEl = document.getElementById("page-content")!;
-  pageEl.innerHTML = '<p class="loading">Loading</p>';
+  pageEl.innerHTML = '<p class="loading">正在加载页面</p>';
 
   try {
     const res = await fetch(`/api/page?path=${encodeURIComponent(pathArg)}`);
     if (!res.ok) {
-      pageEl.innerHTML = `<p class="loading">Failed to load <code>${escapeHtml(pathArg)}</code>: ${res.status}</p>`;
+      pageEl.innerHTML = `<p class="loading">加载 <code>${escapeHtml(pathArg)}</code> 失败：${res.status}</p>`;
       return;
     }
     const data: PageResponse = await res.json();
@@ -232,41 +252,89 @@ async function loadPage(pathArg: string): Promise<void> {
     titleEl.textContent = data.title ?? data.path;
 
     await loadAudits(data.path);
+    await loadHealth();
     pageEl.scrollTop = 0;
     (document.querySelector("main") as HTMLElement | null)?.scrollTo({ top: 0 });
   } catch (err) {
     console.error(err);
-    pageEl.innerHTML = `<p class="loading">Error loading page.</p>`;
+    pageEl.innerHTML = `<p class="loading">页面加载失败。</p>`;
   }
 }
 
 async function loadAudits(targetPath: string): Promise<void> {
   const el = document.getElementById("audit-list")!;
-  el.innerHTML = '<p class="loading">Loading</p>';
+  el.innerHTML = '<p class="loading">正在加载审阅</p>';
   try {
     const res = await fetch(`/api/audit?target=${encodeURIComponent(targetPath)}&mode=open`);
     const data: { entries: AuditEntry[] } = await res.json();
     if (data.entries.length === 0) {
-      el.innerHTML = '<p class="muted" style="padding: 4px 6px; font-size: 12.5px;">No open audits for this page.</p>';
+      el.innerHTML = '<p class="muted" style="padding: 4px 6px; font-size: 12.5px;">当前页面没有 open audit。</p>';
       return;
     }
     el.innerHTML = data.entries.map((e) => renderAuditItem(e)).join("");
     el.querySelectorAll("button[data-resolve]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-resolve")!;
-        const note = window.prompt("Resolution note (optional):", "") ?? "";
+        const note = window.prompt("Resolution note（可选）:", "") ?? "";
         const r = await fetch(`/api/audit/${id}/resolve`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ resolution: note }),
         });
-        if (r.ok) await loadAudits(targetPath);
-        else alert("Failed to resolve.");
+        if (r.ok) {
+          await loadAudits(targetPath);
+          await loadHealth();
+        } else alert("标记 resolved 失败。");
       });
     });
   } catch (err) {
-    el.innerHTML = '<p class="muted" style="padding: 4px 6px;">Failed to load audits.</p>';
+    el.innerHTML = '<p class="muted" style="padding: 4px 6px;">读取审阅失败。</p>';
     console.error(err);
+  }
+}
+
+async function loadHealth(): Promise<void> {
+  const el = document.getElementById("health-status")!;
+  el.innerHTML = '<p class="loading">正在读取工作台状态</p>';
+  try {
+    const data = (await fetch("/api/health").then((r) => r.json())) as HealthResponse;
+    const statusClass = data.maintenanceMode === "ready" ? "ready" : "blocked";
+    const rawPaths = data.delta.rawPaths.slice(0, 4);
+    const promoteCandidates = data.delta.promoteCandidates.slice(0, 4);
+    const missing = data.missingInputs.slice(0, 6);
+    const pendingRepo = data.pendingRepoBridge.slice(0, 4);
+    el.innerHTML = `
+      <div class="health-card">
+        <div class="health-head">
+          <span class="status-pill ${statusClass}">${data.maintenanceMode}</span>
+          <span class="health-meta">lint: ${escapeHtml(data.lastLintStatus)}</span>
+        </div>
+        <div class="health-summary">${escapeHtml(data.summary)}</div>
+        <div class="health-block">
+          <div class="health-label">缺失输入</div>
+          ${missing.length > 0 ? `<ul class="health-list">${missing.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : '<div class="health-empty">无</div>'}
+        </div>
+        <div class="health-block">
+          <div class="health-label">Raw delta</div>
+          ${rawPaths.length > 0 ? `<ul class="health-list">${rawPaths.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : '<div class="health-empty">无新的 raw 增量</div>'}
+        </div>
+        <div class="health-block">
+          <div class="health-label">Promote candidates</div>
+          ${promoteCandidates.length > 0 ? `<ul class="health-list">${promoteCandidates.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : '<div class="health-empty">暂无候选</div>'}
+        </div>
+        <div class="health-block">
+          <div class="health-label">Pending repo bridge</div>
+          ${pendingRepo.length > 0 ? `<ul class="health-list">${pendingRepo.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : '<div class="health-empty">无</div>'}
+        </div>
+        <div class="health-foot">
+          <span>open audits: ${data.openAuditCount}</span>
+          <span>last loop: ${escapeHtml(data.lastSuccessfulLoopAt ?? "(none)")}</span>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = '<p class="muted" style="padding: 4px 6px;">工作台状态读取失败。</p>';
   }
 }
 
@@ -290,7 +358,7 @@ function renderAuditItem(e: AuditEntry): string {
       </div>
       <div class="audit-body">${escapeHtml(body)}</div>
       <div class="audit-meta">${e.id} · ${when}</div>
-      <div class="audit-actions"><button type="button" data-resolve="${e.id}">mark resolved</button></div>
+      <div class="audit-actions"><button type="button" data-resolve="${e.id}">标记 resolved</button></div>
     </div>`;
 }
 

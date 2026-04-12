@@ -47,14 +47,14 @@ export function parseArgs(argv: string[]): ServerConfig {
   }
 
   if (!wikiRoot) {
-    console.error("error: --wiki <root> is required");
+    console.error("error: 必须提供 --wiki <root>");
     printHelp();
     process.exit(1);
   }
 
   const resolved = path.resolve(wikiRoot);
   if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
-    console.error(`error: workbench root does not exist or is not a directory: ${resolved}`);
+    console.error(`error: workbench root 不存在或不是目录: ${resolved}`);
     process.exit(1);
   }
 
@@ -67,12 +67,11 @@ Usage:
   npm start -- --wiki <workbench-root> [--port 4175] [--host 127.0.0.1] [--author lewis]
 
 Options:
-  -w, --wiki     Path to the research workbench root (required). The directory
-                 should contain WORKBENCH.md plus canonical folders such as
-                 'compiled/', 'indexes/', 'audit/', and 'log/'.
-  -p, --port     Port to listen on (default: 4175).
-      --host     Host to bind to (default: 127.0.0.1 — local only).
-      --author   Author name written into feedback files (default: $USER).
-  -h, --help     Show this help.
+  -w, --wiki     workbench 根目录（必填）。目录内应包含 WORKBENCH.md，
+                 以及 compiled/、indexes/、audit/、log/ 等 canonical 目录。
+  -p, --port     监听端口（默认: 4175）。
+      --host     绑定地址（默认: 127.0.0.1，仅本机）。
+      --author   写入 audit 文件的作者名（默认: $USER）。
+  -h, --help     显示帮助。
 `);
 }

@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """
-scaffold.py — Bootstrap a new Research Workbench directory structure.
+scaffold.py — Bootstrap a new Chinese-first Research Workbench directory structure.
 
 Usage:
     python3 scaffold.py <workbench-root> "<Workbench Title>"
 
 Example:
-    python3 scaffold.py ~/workbenches/ai-research "AI Research Workbench"
+    python3 scaffold.py ~/workbenches/yan-vault "严言研究工作台"
 
 Creates:
     <workbench-root>/
     ├── WORKBENCH.md
+    ├── .gitignore
     ├── raw/
     │   ├── inbox/
     │   ├── daily/
@@ -20,7 +21,8 @@ Creates:
     │       └── others/
     ├── compiled/
     │   ├── _meta/
-    │   │   └── registry.json
+    │   │   ├── registry.json
+    │   │   └── ops.json
     │   ├── projects/
     │   ├── ideas/
     │   ├── knowledge/
@@ -51,13 +53,22 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
+FOCUS_KEYS = [
+    "Primary active project",
+    "Current blocker",
+    "Primary repo jump point",
+    "Immediate next push",
+]
+
 
 def scaffold(root: str, title: str) -> None:
     today = date.today()
     today_iso = today.isoformat()
     today_compact = today.strftime("%Y%m%d")
-    now_hm = datetime.now().strftime("%H:%M")
-    workbench_name = title.strip() or "Research Workbench"
+    now = datetime.now()
+    now_iso = now.isoformat()
+    now_hm = now.strftime("%H:%M")
+    workbench_name = title.strip() or "研究工作台"
     helper_dir = Path(__file__).resolve().parent
 
     dirs = [
@@ -81,7 +92,7 @@ def scaffold(root: str, title: str) -> None:
 
     for rel in dirs:
         os.makedirs(os.path.join(root, rel), exist_ok=True)
-    print(f"✓ Created directory tree under {root}/")
+    print(f"✓ 已创建目录骨架: {root}/")
 
     gitkeep_dirs = [
         "raw/inbox",
@@ -100,8 +111,9 @@ def scaffold(root: str, title: str) -> None:
     for rel in gitkeep_dirs:
         _write(root, os.path.join(rel, ".gitkeep"), "")
 
+    _write(root, ".gitignore", render_gitignore())
     _write(root, "WORKBENCH.md", render_workbench_md(workbench_name))
-    print("✓ Created WORKBENCH.md")
+    print("✓ 已创建 WORKBENCH.md 与 .gitignore")
 
     _write(root, "indexes/Home.md", render_home_md(workbench_name))
     _write(root, "indexes/Projects.md", render_projects_index_md())
@@ -109,90 +121,142 @@ def scaffold(root: str, title: str) -> None:
     _write(root, "indexes/Knowledge.md", render_knowledge_index_md())
     _write(root, "indexes/People.md", render_people_index_md())
     _write(root, "indexes/Review.md", render_review_index_md())
-    print("✓ Created indexes/*.md")
+    print("✓ 已创建 indexes/*.md")
 
     _write(root, "compiled/review/Review.md", render_review_md())
-    print("✓ Created compiled/review/Review.md")
+    print("✓ 已创建 compiled/review/Review.md")
 
     registry = {
         "meta": {
-            "schema_version": "1.0",
+            "schema_version": "2.0",
             "generated_at": f"{today_iso}T00:00:00",
             "workbench_title": workbench_name,
             "canonical_schema": "WORKBENCH.md",
+            "runtime_state": "compiled/_meta/ops.json",
             "repo_roots": {},
-            "notes": "Registry is the machine-readable source for generated indexes and object-aware tooling.",
+            "language_profile": "zh-CN primary; English reserved for stable machine-readable identifiers",
+            "notes": "Registry is the machine-readable source for compiled objects, generated indexes, and repo-aware stale checks.",
         },
         "objects": [
             {
                 "id": "review:global",
                 "type": "review",
                 "path": "compiled/review/Review.md",
-                "title": "Review",
+                "title": "Review 总览",
                 "status": "active",
-                "summary": "Global digestion queue for newly noticed and organized knowledge.",
+                "summary": "全局知识消化队列，用于整理 noticed、organized、retained、deferred。",
                 "updated_at": today_iso,
                 "source_count": 0,
                 "audit_open_count": 0,
                 "source_refs": [],
                 "related_object_ids": [],
                 "stage": "noticed",
-                "next_action": "Ingest sources, promote durable ideas, and refresh this queue during review passes.",
+                "next_action": "完成 preflight，补齐 Current Focus，然后开始第一次 ingest / compile / review。",
             }
         ],
     }
-    _write(root, "compiled/_meta/registry.json", json.dumps(registry, indent=2) + "\n")
-    print("✓ Created compiled/_meta/registry.json")
+    _write(root, "compiled/_meta/registry.json", json.dumps(registry, indent=2, ensure_ascii=False) + "\n")
+
+    ops = {
+        "generated_at": now_iso,
+        "current_focus_ok": False,
+        "missing_inputs": [f"Current Focus / {key}" for key in FOCUS_KEYS],
+        "maintenance_mode": "blocked",
+        "delta": {
+            "raw_paths": [],
+            "promote_candidates": [],
+        },
+        "open_audit_count": 0,
+        "pending_repo_bridge": [],
+        "last_successful_loop_at": None,
+        "last_lint_status": "unknown",
+    }
+    _write(root, "compiled/_meta/ops.json", json.dumps(ops, indent=2, ensure_ascii=False) + "\n")
+    print("✓ 已创建 compiled/_meta/registry.json 与 compiled/_meta/ops.json")
 
     log_md = f"""# {today_iso}
 
-## [{now_hm}] scaffold | Initialized {workbench_name}
-- Created research workbench directory tree (`raw/`, `compiled/`, `indexes/`, `outputs/`, `audit/`, `log/`)
-- Created `WORKBENCH.md` system protocol
-- Created starter index pages and the global review page
-- Seeded `compiled/_meta/registry.json`
+## [{now_hm}] scaffold | 初始化 {workbench_name}
+- 创建了 canonical workbench 目录：`raw/`、`compiled/`、`indexes/`、`outputs/`、`audit/`、`log/`
+- 创建了 `WORKBENCH.md`、索引页、全局 Review 页面以及 `_meta/registry.json`
+- 创建了 `compiled/_meta/ops.json`，当前状态为 `blocked`
+- 下一步先填写 `indexes/Home.md` 中的 `Current Focus`，再运行 `harness.py preflight`
 """
     _write(root, f"log/{today_compact}.md", log_md)
-    print(f"✓ Created log/{today_compact}.md")
+    print(f"✓ 已创建 log/{today_compact}.md")
+
+    preflight_cmd = render_helper_command(helper_dir / "harness.py", "preflight", root)
+    health_cmd = render_helper_command(helper_dir / "harness.py", "health", root)
+    lint_cmd = render_helper_command(helper_dir / "lint_wiki.py", root)
+    audit_cmd = render_helper_command(helper_dir / "audit_review.py", root, "--open")
 
     print(
         f"""
-✅ Research Workbench scaffolded at: {root}/
+✅ 已完成中文优先的 Research Workbench scaffold: {root}/
 
-Next steps:
-  1. Fill in WORKBENCH.md — scope, conventions, object policies, migration notes
-  2. Capture new material into raw/inbox/ or raw/external/
-  3. Promote stable ideas and projects only after confirmation
-  4. Run compile/review passes in batches, not continuously
-  5. Run lint periodically:  {render_helper_command(helper_dir / "lint_wiki.py", root)}
-  6. Review audits:         {render_helper_command(helper_dir / "audit_review.py", root, "--open")}
+建议下一步:
+  1. 先填写 `indexes/Home.md` 中的 `Current Focus`
+  2. 检查 `WORKBENCH.md` 是否需要改成你的真实研究协议
+  3. 将新材料放入 `raw/inbox/` 或 `raw/external/`
+  4. 运行 preflight: {preflight_cmd}
+  5. 查看 health:    {health_cmd}
+  6. 运行 lint:      {lint_cmd}
+  7. 处理审阅:       {audit_cmd}
 """
     )
+
+
+def render_gitignore() -> str:
+    return """# macOS
+.DS_Store
+
+# Obsidian runtime noise
+.obsidian/graph.json
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Local plugin build noise
+.obsidian/plugins/
+"""
 
 
 def render_workbench_md(title: str) -> str:
     return f"""# {title}
 
-> Stable system protocol for the AI-maintained research workbench.
-> Read this together with `indexes/Home.md` at the start of every session.
+> 这是当前 research workbench 的稳定协议文件。
+> Codex 每次维护时，真实入口始终是 `WORKBENCH.md` 与 `indexes/Home.md`。
 
-## 1. Purpose and Scope
+## 1. 系统边界与目标
 
-This workbench is the canonical home for AI-maintained long-term research support.
-It is optimized for:
-- low-friction capture into `raw/`
-- AI-maintained compiled objects in `compiled/`
-- human correction through `audit/`
-- weekly or batch-oriented `compile` and `review` loops
+- **项目仓库** 负责 harness 源码、脚本、web viewer 与 Obsidian audit plugin。
+- **`llm-wiki` skill** 负责 Codex 的维护协议与操作顺序。
+- **当前 vault** 才是被维护的 runtime target。
+- Codex 维护 Obsidian 的时候，入口不是项目仓库根目录，也不是 Obsidian app 本身，而是这个 vault 里的 `WORKBENCH.md + indexes/Home.md`。
 
-It is not optimized for:
-- turning Obsidian into the execution body of a software project
-- mirroring a legacy vault one-to-one
-- automatic promotion of every captured thought into a first-class object
+这个工作台的目标是：
+- 用低摩擦的方式把新信号先接进 `raw/`
+- 让 Codex 持续维护 `compiled/`、`indexes/`、`registry` 与 `ops`
+- 通过 `review`、`audit`、`log` 把长期科研支持做成稳定闭环
 
-## 2. Global Conventions
+这个工作台不负责：
+- 把 Obsidian 变成代码仓库的执行主体
+- 把旧 Vault 原样镜像过来
+- 自动把每一条捕获都提升成正式对象
 
-- Canonical root contract:
+## 2. 语言合同
+
+- vault 正文、导航说明、review 文案、log 文案默认使用中文。
+- 英文保留给稳定命名层：
+  - canonical 文件名与 slug
+  - `registry.json` 中的 `id / type / path`
+  - `ops.json` key
+  - status 枚举
+  - 必要的 canonical title
+- 页面标题可以中英混合，但默认优先中文表达。
+
+## 3. Canonical Root Contract
+
+- 根文件与根目录：
   - `WORKBENCH.md`
   - `raw/`
   - `compiled/`
@@ -200,23 +264,24 @@ It is not optimized for:
   - `outputs/`
   - `audit/`
   - `log/`
-- `raw/` is evidence and capture, not the main user-facing layer.
-- `compiled/` holds AI-maintained research objects.
-- `indexes/` holds navigation and control pages.
-- `outputs/` holds temporary query artifacts and non-canonical generated material.
-- `log/YYYYMMDD.md` records operation history.
-- All diagrams are mermaid. All formulas are KaTeX.
-- The preferred linking style is natural inline Obsidian links with readable aliases when helpful.
+- `compiled/_meta/registry.json` 是 compiled 层的机器可读索引。
+- `compiled/_meta/ops.json` 是 harness 运行状态层。
+- `raw/` 是证据与输入，不是主浏览层。
+- `outputs/` 放查询结果、候选提案和其他非 canonical 产物。
 
-## 3. Object Protocols
+## 4. Human-owned Zones
+
+- `indexes/Home.md` 中的 `Current Focus` 由人类维护。
+- project / idea 页面中的 `My Notes` 由人类维护。
+- Codex 在 `compile` 时不得覆盖这些区块。
+
+## 5. Object Protocols
 
 ### Project
 
-- Path pattern: `compiled/projects/<project-slug>/index.md`
-- Status set: `active`, `holding`, `done`
-- Purpose: light project control page, not the execution body
-- Repo boundary: detailed execution should live in the corresponding repo
-- Fixed structure:
+- 路径：`compiled/projects/<project-slug>/index.md`
+- 状态：`active | holding | done`
+- 固定结构：
   1. Overview
   2. Status
   3. Execution Entry
@@ -224,43 +289,33 @@ It is not optimized for:
   5. AI Compiled
   6. My Notes
   7. Provenance
-- Ownership:
-  - `My Notes` is human-owned
-  - all other fixed sections are AI-maintained unless explicitly marked otherwise
 
 ### Idea
 
-- Path pattern: `compiled/ideas/<idea-slug>.md`
-- Status set: `spark`, `exploring`, `incubating`, `project-ready`
-- Purpose: human-led idea page that may mature into a project
-- Fixed structure:
+- 路径：`compiled/ideas/<idea-slug>.md`
+- 状态：`spark | exploring | incubating | project-ready`
+- 固定结构：
   1. Proposition
   2. Status
   3. AI Judgment
   4. Related Objects
   5. My Notes
   6. Provenance
-- Ownership:
-  - `My Notes` is human-owned
-  - `AI Judgment` is AI-maintained
 
 ### Knowledge
 
-- Path pattern: `compiled/knowledge/<English Canonical Title>.md`
-- Purpose: stable personal research understanding, not a neutral encyclopedia entry
-- Fixed structure:
+- 路径：`compiled/knowledge/<English Canonical Title>.md`
+- 固定结构：
   1. Current Understanding
   2. Why It Matters
   3. Related Projects and Ideas
   4. AI Compiled Body
   5. Provenance
-- Knowledge pages should carry their own digestion state in frontmatter or visible content.
 
 ### People
 
-- Path pattern: `compiled/people/<source-facing name>.md`
-- Purpose: AI-maintained relationship and academic context memory
-- Fixed structure:
+- 路径：`compiled/people/<source-facing name>.md`
+- 固定结构：
   1. Current Relationship
   2. Academic Profile
   3. Related Objects
@@ -270,53 +325,56 @@ It is not optimized for:
 
 ### Review
 
-- Path pattern: `compiled/review/Review.md`
-- Purpose: global digestion queue rather than a long-form knowledge article
-- Fixed structure:
+- 路径：`compiled/review/Review.md`
+- 固定结构：
   1. Overview
   2. Noticed
   3. Organized
   4. Retained
   5. Deferred
 
-## 4. Object Matrix
+## 6. Harness Loop
 
-| Object | Canonical path | Operating style | Human-owned zone |
-|---|---|---|---|
-| Project | `compiled/projects/<slug>/index.md` | AI-led control page | `My Notes` |
-| Idea | `compiled/ideas/<slug>.md` | human-led with AI judgment | `My Notes` |
-| Knowledge | `compiled/knowledge/<Title>.md` | AI-led compiled page | optional additive notes only |
-| People | `compiled/people/<Name>.md` | AI-led compiled page | optional additive notes only |
-| Review | `compiled/review/Review.md` | AI-led queue | none by default |
+维护状态机固定为：
+1. `preflight`
+2. `ingest`
+3. `compile`
+4. `review`
+5. `promote`
+6. `lint`
+7. `audit`
+8. `postflight`
 
-## 5. Operation Matrix
+阻断规则：
+- 如果 `indexes/Home.md -> Current Focus` 缺关键输入，则 `maintenance_mode = blocked`
+  - 允许有限读取、query、audit
+  - 禁止核心 `compile / promote`
+- 如果 repo 路径未被用户确认，则禁止猜测 `registry.meta.repo_roots`
+- 如果候选还没有稳定来源、明确 related objects 和可写 provenance，则禁止 promote，只能先留在 `outputs/queries/`
 
-| Operation | Reads | Writes | Notes |
-|---|---|---|---|
-| `ingest` | source material, `WORKBENCH.md` | `raw/`, `log/` | ingest writes raw only |
-| `compile` | raw, repo control docs, compiled, registry | `compiled/`, `indexes/`, registry, `log/` | default to signal-driven partial refresh |
-| `query` | `WORKBENCH.md`, registry, compiled, selective raw/repo fallback | `outputs/queries/`, `log/` | durable results require `promote` |
-| `lint` | registry, compiled, indexes, audit, log | report only by default | do not silently rewrite canonical content |
-| `audit` | open audit files, target pages, supporting sources | target files, `audit/resolved/`, `log/` | never ignore open audits |
-| `review` | knowledge pages, registry, selective raw evidence | `compiled/review/Review.md`, `log/` | organize digestion queue |
-| `promote` | raw candidates, compiled pages, registry | target compiled object, `log/` | requires user confirmation |
+## 7. Repo-aware Contract
 
-## 6. Migration and Compatibility Notes
+- `registry.meta.repo_roots` 只接受用户确认过的本地路径。
+- `repo:` source refs 仅连接显式执行入口：
+  - `PROJECT.md`
+  - `README.md`
+  - `docs/index.md`
+- 不做深度 repo 扫描，也不自动推断 repo 根路径。
 
-- `WORKBENCH.md` replaces `CLAUDE.md` as the canonical schema file.
-- `compiled/` replaces `wiki/` as the canonical compiled layer.
-- `indexes/` replaces the old single `wiki/index.md` navigation role.
-- Legacy `CLAUDE.md` and `wiki/` content may still be read as migration input, but they are not canonical truth.
-- This workbench should normally live in a new vault instead of mutating a legacy vault in place.
-- Repo-aware project signals in v1 should stay limited to explicit execution-entry docs such as `PROJECT.md`, `README.md`, or `docs/index.md`.
+## 8. Migration and Compatibility Notes
+
+- `WORKBENCH.md` 取代旧 `CLAUDE.md` 的协议角色。
+- `compiled/` 取代旧 `wiki/` 的 canonical compiled 层。
+- `indexes/` 取代旧的单一入口页。
+- 旧 `CLAUDE.md` 与 `wiki/` 仍可作为迁移输入读取，但不再是 canonical truth。
 """
 
 
 def render_home_md(title: str) -> str:
     return f"""# Home
 
-> Default landing page for {title}.
-> This page is hybrid: `Current Focus` is human-owned, while the remaining sections are AI-maintained summaries generated from the registry and compiled layer.
+> 这是 {title} 的默认落地页。
+> `Current Focus` 是人类输入锚点，其余区块由 Codex 按 registry 与 compiled 层维护。
 
 ## Current Focus
 
@@ -326,169 +384,167 @@ def render_home_md(title: str) -> str:
 - Primary repo jump point:
 - Immediate next push:
 
-## Inbox
-
-- New raw captures to review: 0
-- Default capture path: `raw/inbox/`
-- Daily journal remains independent at `raw/daily/`
-
 ## Projects
 
-- See [[indexes/Projects|Projects index]].
-- No projects promoted yet.
+- 入口：[[indexes/Projects|Projects 索引]]
+- 当前暂无已推广项目时，由 Codex 在 compile 后补齐
 
 ## Ideas
 
-- See [[indexes/Ideas|Ideas index]].
-- No ideas promoted yet.
+- 入口：[[indexes/Ideas|Ideas 索引]]
+- 尚未成熟的候选先进入 `outputs/queries/`
 
 ## Review
 
-- See [[compiled/review/Review|global Review queue]] and [[indexes/Review|Review index]].
+- 入口：[[compiled/review/Review|全局 Review 队列]]
+- 目标：把 noticed / organized / retained / deferred 管理成稳定节奏
 
 ## People
 
-- See [[indexes/People|People index]].
-- No tracked people yet.
+- 入口：[[indexes/People|People 索引]]
+- 只维护与你当前研究推进直接相关的人
 
 ## Recent Changes
 
-- Workbench initialized.
-- Registry seeded at `compiled/_meta/registry.json`.
+- 工作台已初始化
+- `compiled/_meta/registry.json` 与 `compiled/_meta/ops.json` 已创建
+- 下一步请先填写 `Current Focus`，再运行 `harness.py preflight`
 """
 
 
 def render_projects_index_md() -> str:
     return """# Projects
 
-> Generated navigation page for project objects. Group by project status.
+> 这是 project 对象的导航页。按状态组织，而不是按文件夹原样罗列。
 
 ## Active
 
-*(none yet)*
+*(暂时为空)*
 
 ## Holding
 
-*(none yet)*
+*(暂时为空)*
 
 ## Done
 
-*(none yet)*
+*(暂时为空)*
 """
 
 
 def render_ideas_index_md() -> str:
     return """# Ideas
 
-> Generated navigation page for idea objects. Group by maturity.
+> 这是 idea 对象的导航页。只有通过 promote 门槛的候选才进入这里。
 
 ## Spark
 
-*(none yet)*
+*(暂时为空)*
 
 ## Exploring
 
-*(none yet)*
+*(暂时为空)*
 
 ## Incubating
 
-*(none yet)*
+*(暂时为空)*
 
 ## Project-ready
 
-*(none yet)*
+*(暂时为空)*
 """
 
 
 def render_knowledge_index_md() -> str:
     return """# Knowledge
 
-> Generated navigation page for knowledge objects. Group by thematic domain when the collection grows.
+> 这是 knowledge 对象的导航页。默认按研究主题逐步聚合。
 
 ## Core Domains
 
-*(none yet)*
+*(暂时为空)*
 
 ## Emerging Domains
 
-*(none yet)*
+*(暂时为空)*
 """
 
 
 def render_people_index_md() -> str:
     return """# People
 
-> Generated navigation page for people objects. Group by relationship role.
+> 这是 people 对象的导航页。只保留对当前研究推进有用的人物上下文。
 
 ## Core Collaborators
 
-*(none yet)*
+*(暂时为空)*
 
 ## Active Contacts
 
-*(none yet)*
+*(暂时为空)*
 
 ## Watchlist
 
-*(none yet)*
+*(暂时为空)*
 """
 
 
 def render_review_index_md() -> str:
     return """# Review
 
-> Navigation and control page for the global digestion queue.
+> 这是全局知识消化队列的控制页，而不是长文页面。
 
 ## Main Queue
 
-- [[compiled/review/Review|Open global Review queue]]
+- [[compiled/review/Review|打开全局 Review 队列]]
 
 ## Notes
 
-- Group entries by digestion stage: noticed, organized, retained, deferred.
-- Review is a control surface, not a long-form article family.
+- `noticed`：刚进入系统，还没结构化
+- `organized`：已经连起来，但还不稳定
+- `retained`：可复用、可调用
+- `deferred`：刻意延后处理
 """
 
 
 def render_review_md() -> str:
     today = date.today().isoformat()
     return f"""---
-title: Review
+title: Review 总览
 type: review
 status: active
 updated: {today}
 source_refs: []
 related_object_ids: []
 stage: noticed
-next_action: Refresh this page after new ingest or compile passes.
+next_action: 完成 preflight 后，根据最新 raw delta 更新本页。
 ---
 
 # Review
 
 ## Overview
 
-This page is the global knowledge digestion queue for the workbench.
-It should answer:
-- what new knowledge entered the system
-- what remains unlinked
-- what should be applied
-- what can be deferred
+这里是全局知识消化队列。
+每次 review 至少要回答这 4 个问题：
+- 最近有什么新知识进入了系统
+- 哪些对象已经结构化但还不稳定
+- 哪些知识已经进入 retained，可直接支持研究推进
+- 哪些主题应该先 defer，避免稀释当前 focus
 
 ## Noticed
 
-*(none yet)*
+*(暂时为空)*
 
 ## Organized
 
-*(none yet)*
+*(暂时为空)*
 
 ## Retained
 
-*(none yet)*
+*(暂时为空)*
 
 ## Deferred
 
-*(none yet)*
+*(暂时为空)*
 """
 
 
@@ -499,9 +555,9 @@ def _write(root: str, rel_path: str, content: str) -> None:
         handle.write(content)
 
 
-def render_helper_command(script_path: Path, root: str, *extra_args: str) -> str:
-    parts = [shlex.quote(sys.executable), shlex.quote(str(script_path)), shlex.quote(root)]
-    parts.extend(shlex.quote(arg) for arg in extra_args)
+def render_helper_command(script_path: Path, *args: str) -> str:
+    parts = [shlex.quote(sys.executable), shlex.quote(str(script_path))]
+    parts.extend(shlex.quote(arg) for arg in args)
     return " ".join(parts)
 
 

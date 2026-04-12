@@ -69,10 +69,10 @@ export async function writeAudit(
   const md = toMarkdown(entry);
   try {
     const created = await app.vault.create(fullPath, md);
-    new Notice(`Audit filed: ${filename}`);
+    new Notice(`已写入 audit：${filename}`);
     return created;
   } catch (err) {
-    new Notice(`Failed to write audit file: ${String(err)}`);
+    new Notice(`写入 audit 文件失败：${String(err)}`);
     throw err;
   }
 }

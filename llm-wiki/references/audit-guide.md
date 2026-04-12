@@ -1,105 +1,52 @@
 # Audit Guide
 
-`audit/` is the human correction surface for the research workbench.
-It keeps feedback durable, anchored, and tool-readable.
+`audit/` 是人类纠偏面，不是一般评论区。
 
-## Directory layout
+## 目录
 
 ```text
-<workbench-root>/audit/
-├── 20260411-103000-provenance-gap.md
-├── 20260411-110500-status-wording.md
+audit/
+├── <open>.md
 └── resolved/
-    └── 20260410-160100-old-definition.md
+    └── <resolved>.md
 ```
 
-- `audit/*.md` -> open feedback
-- `audit/resolved/*.md` -> processed feedback with a resolution note
+## 每条 audit 至少包含
 
-## File contract
-
-Each file has:
 - YAML frontmatter
 - `# Comment`
 - `# Resolution`
 
-The anchored fields stay compatible with the shared `audit-shared/` library:
+前锚点字段保持与 `audit-shared/` 兼容：
 - `target_lines`
 - `anchor_before`
 - `anchor_text`
 - `anchor_after`
 
-## Required frontmatter fields
+## 目标页
 
-- `id`
-- `target`
-- `target_lines`
-- `anchor_before`
-- `anchor_text`
-- `anchor_after`
-- `severity`
-- `author`
-- `source`
-- `created`
-- `status`
-
-## Severity meaning
-
-- `info` -> worth noting
-- `suggest` -> consider changing
-- `warn` -> something looks off
-- `error` -> something is wrong
-
-Process `error` and `warn` first.
-
-## Target policy
-
-Targets are paths relative to the workbench root.
-Typical targets include:
-- `compiled/projects/<slug>/index.md`
-- `compiled/ideas/<slug>.md`
-- `compiled/knowledge/<Title>.md`
-- `compiled/people/<Name>.md`
+常见目标：
+- `compiled/projects/...`
+- `compiled/ideas/...`
+- `compiled/knowledge/...`
+- `compiled/people/...`
 - `compiled/review/Review.md`
 - `indexes/Home.md`
 
-Raw files may also be audited, but compiled pages are the primary audit surface.
+## 处理顺序
 
-## Processing workflow
+优先处理：
+1. `error`
+2. `warn`
+3. `suggest`
+4. `info`
 
-1. Run:
-   ```bash
-   python3 scripts/audit_review.py <workbench-root> --open
-   ```
-2. For each open audit:
-   - locate the target region using the anchor window
-   - decide `accept | partial | reject | defer`
-   - apply the smallest edit that resolves the issue
-   - append the resolution note
-   - move the file to `audit/resolved/` if resolved
-   - log the action in `log/YYYYMMDD.md`
+## 处理流程
 
-## Defer policy
-
-If feedback exposes an unresolved research question:
-- keep the audit open if needed
-- record the unresolved issue in the relevant compiled page or in `WORKBENCH.md` if it is a system-level rule question
-- do not silently drop the feedback
-
-## Resolution note format
-
-```markdown
-# Resolution
-
-2026-04-11 · accepted.
-Clarified the project status wording and added explicit provenance to the repo entry.
-Updated: compiled/projects/example/index.md.
-```
-
-## Tooling
-
-- `audit-shared/` defines the schema and anchor behavior
-- `scripts/audit_review.py` groups audits
-- `scripts/lint_wiki.py` validates audit shape and target existence
-- `plugins/obsidian-audit/` files audits from Obsidian
-- `web/` files audits from the browser
+1. 读取 open audits
+2. 用 anchor window 定位目标片段
+3. 决定 `accept / partial / reject / defer`
+4. 对目标页面做最小修复
+5. 追加 resolution note
+6. 移动到 `audit/resolved/`
+7. 追加 `log/`

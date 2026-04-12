@@ -9,8 +9,8 @@ export interface FeedbackModalResult {
 const SEVERITIES: Severity[] = ["info", "suggest", "warn", "error"];
 
 /**
- * Chip-style severity picker + comment textarea. Matches the web viewer
- * dialog visually so users get a coherent experience across both tools.
+ * Chip-style severity picker + comment textarea. Keeps the Obsidian plugin
+ * aligned with the local web viewer so feedback feels consistent across tools.
  */
 export class FeedbackModal extends Modal {
   private severity: Severity = "warn";
@@ -39,17 +39,17 @@ export class FeedbackModal extends Modal {
     // Header
     const header = contentEl.createDiv({ cls: "audit-header" });
     header.createDiv({ cls: "audit-dot" });
-    header.createEl("h3", { text: "New audit feedback" });
+    header.createEl("h3", { text: "新建审阅意见" });
 
     // Selected text preview
     const previewField = contentEl.createDiv({ cls: "audit-field" });
-    previewField.createEl("label", { cls: "audit-field-label", text: "Selected text" });
+    previewField.createEl("label", { cls: "audit-field-label", text: "选中文本" });
     const preview = previewField.createEl("pre", { cls: "audit-preview" });
     preview.setText(this.previewText);
 
     // Severity chips
     const sevField = contentEl.createDiv({ cls: "audit-field" });
-    sevField.createEl("label", { cls: "audit-field-label", text: "Severity" });
+    sevField.createEl("label", { cls: "audit-field-label", text: "Severity / 严重性" });
     const sevRow = sevField.createDiv({ cls: "audit-severity" });
     for (const sev of SEVERITIES) {
       const label = sevRow.createEl("label");
@@ -68,12 +68,12 @@ export class FeedbackModal extends Modal {
     const commentField = contentEl.createDiv({ cls: "audit-field" });
     commentField.createEl("label", {
       cls: "audit-field-label",
-      text: "Comment (markdown allowed)",
+      text: "评论内容（支持 markdown）",
     });
     const textarea = commentField.createEl("textarea", {
       cls: "audit-comment",
     }) as HTMLTextAreaElement;
-    textarea.placeholder = "Explain what's wrong or what should change…";
+    textarea.placeholder = "说明哪里有问题，或者你希望如何修改……";
     textarea.value = this.comment;
     textarea.addEventListener("input", () => {
       this.comment = textarea.value;
@@ -90,11 +90,11 @@ export class FeedbackModal extends Modal {
     const buttons = contentEl.createDiv({ cls: "audit-buttons" });
 
     new ButtonComponent(buttons)
-      .setButtonText("Cancel")
+      .setButtonText("取消")
       .onClick(() => this.finish(null));
 
     new ButtonComponent(buttons)
-      .setButtonText("Save feedback")
+      .setButtonText("保存意见")
       .setCta()
       .onClick(() => this.trySave());
   }
@@ -109,7 +109,7 @@ export class FeedbackModal extends Modal {
 
   private trySave(): void {
     if (!this.comment.trim()) {
-      new Notice("Comment is empty");
+      new Notice("评论内容不能为空");
       return;
     }
     this.finish({ severity: this.severity, comment: this.comment });

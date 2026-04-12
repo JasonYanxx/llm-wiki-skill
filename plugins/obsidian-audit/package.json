@@ -2,7 +2,7 @@
   "name": "obsidian-audit",
   "version": "0.1.0",
   "private": true,
-  "description": "Obsidian plugin for the Research Workbench workflow — select text and file an anchored audit comment.",
+  "description": "用于 Research Workbench 的 Obsidian 插件：选中文本并提交 anchored audit，同时提示当前 workbench health。",
   "scripts": {
     "build": "node esbuild.config.mjs production",
     "dev": "node esbuild.config.mjs",

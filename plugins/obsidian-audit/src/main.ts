@@ -15,6 +15,7 @@ import {
 import { FeedbackModal } from "./feedback-modal.js";
 import { writeAudit } from "./writer.js";
 import { fromMarkdown } from "audit-shared";
+import { formatHealthNotice, readWorkbenchHealth, type WorkbenchHealth } from "./health.js";
 
 export default class LLMWikiAuditPlugin extends Plugin {
   settings!: LLMWikiAuditSettings;
@@ -24,11 +25,11 @@ export default class LLMWikiAuditPlugin extends Plugin {
 
     this.addCommand({
       id: "audit-add-feedback",
-      name: "Add feedback on selection",
+      name: "对当前选区提出审阅意见",
       hotkeys: [{ modifiers: ["Mod"], key: "'" }],
       editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
         if (!(ctx instanceof MarkdownView)) {
-          new Notice("Audit feedback only works in a markdown editor view");
+          new Notice("审阅意见只能在 markdown 编辑视图中使用");
           return;
         }
         await this.handleAddFeedback(editor, ctx);
@@ -37,7 +38,7 @@ export default class LLMWikiAuditPlugin extends Plugin {
 
     this.addCommand({
       id: "audit-list-feedback-current-file",
-      name: "List open feedback for current file",
+      name: "列出当前文件的 open audit",
       callback: async () => {
         await this.handleListFeedbackForCurrentFile();
       },
@@ -45,17 +46,26 @@ export default class LLMWikiAuditPlugin extends Plugin {
 
     this.addCommand({
       id: "audit-open-folder",
-      name: "Open audit folder",
+      name: "打开 audit 文件夹",
       callback: () => {
         const path = this.resolveAuditDir();
         const folder = this.app.vault.getAbstractFileByPath(path);
         if (folder) {
           // @ts-expect-error — revealInFolder exists on the workspace API
           this.app.showInFolder?.(folder.path);
-          new Notice(`Audit folder: ${folder.path}`);
+          new Notice(`Audit 文件夹：${folder.path}`);
         } else {
-          new Notice(`Audit folder not found: ${path}`);
+          new Notice(`未找到 audit 文件夹：${path}`);
         }
+      },
+    });
+
+    this.addCommand({
+      id: "audit-show-workbench-health",
+      name: "显示 workbench 健康状态",
+      callback: async () => {
+        const health = await this.readWorkbenchHealth();
+        new Notice(`${formatHealthNotice(health)}\n${health.summary}`, 10000);
       },
     });
 
@@ -72,15 +82,19 @@ export default class LLMWikiAuditPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
+  async readWorkbenchHealth(): Promise<WorkbenchHealth> {
+    return readWorkbenchHealth(this.app, this.settings);
+  }
+
   private async handleAddFeedback(editor: Editor, view: MarkdownView): Promise<void> {
     const selection = editor.getSelection();
     if (!selection || !selection.trim()) {
-      new Notice("Select some text first");
+      new Notice("请先选中文本");
       return;
     }
     const file = view.file;
     if (!file) {
-      new Notice("No file open");
+      new Notice("当前没有打开文件");
       return;
     }
 
@@ -90,7 +104,7 @@ export default class LLMWikiAuditPlugin extends Plugin {
     const selStart = editor.posToOffset(from);
     const selEnd = editor.posToOffset(to);
     if (selEnd <= selStart) {
-      new Notice("Empty selection");
+      new Notice("选区为空");
       return;
     }
 
@@ -117,7 +131,7 @@ export default class LLMWikiAuditPlugin extends Plugin {
   private async handleListFeedbackForCurrentFile(): Promise<void> {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view || !view.file) {
-      new Notice("No markdown file open");
+      new Notice("当前没有打开 markdown 文件");
       return;
     }
     const targetRel = this.fileRelToWiki(view.file.path);
@@ -125,7 +139,7 @@ export default class LLMWikiAuditPlugin extends Plugin {
 
     const folder = this.app.vault.getAbstractFileByPath(auditDir);
     if (!folder) {
-      new Notice(`Audit folder not found: ${auditDir}`);
+      new Notice(`未找到 audit 文件夹：${auditDir}`);
       return;
     }
 
@@ -146,10 +160,10 @@ export default class LLMWikiAuditPlugin extends Plugin {
     }
 
     if (matches.length === 0) {
-      new Notice(`No open audits for ${targetRel}`);
+      new Notice(`${targetRel} 当前没有 open audit`);
     } else {
       new Notice(
-        `${matches.length} open audit(s) for ${targetRel}:\n${matches.join("\n")}`,
+        `${targetRel} 当前有 ${matches.length} 条 open audit：\n${matches.join("\n")}`,
         8000,
       );
     }

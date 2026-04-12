@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Research Workbench</title>
+    <title>研究工作台 Research Workbench</title>
     <link rel="preconnect" href="https://rsms.me/" />
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
     <link rel="stylesheet" href="/assets/styles.css" />
@@ -12,51 +12,59 @@
   <body>
     <header id="topbar" class="glass">
       <div class="topbar-left">
-        <span class="brand"><span class="brand-dot"></span>Research Workbench</span>
+        <span class="brand"><span class="brand-dot"></span>研究工作台 Research Workbench</span>
         <span id="wiki-title"></span>
       </div>
       <div class="topbar-right">
-        <button id="btn-graph" class="btn" type="button" title="Object graph (G)">
-          <span>⬡</span> Graph
+        <button id="btn-graph" class="btn" type="button" title="对象图 (G)">
+          <span>⬡</span> 对象图
         </button>
-        <button id="btn-refresh" class="btn btn-icon btn-ghost" type="button" title="Refresh audits">↻</button>
+        <button id="btn-refresh" class="btn btn-icon btn-ghost" type="button" title="刷新健康状态与审阅">↻</button>
       </div>
     </header>
 
     <aside id="sidebar-left" class="glass">
       <header>
-        <h1>Navigation</h1>
+        <h1>导航</h1>
       </header>
-      <nav id="tree"><p class="loading">Loading tree</p></nav>
+      <nav id="tree"><p class="loading">正在加载导航</p></nav>
     </aside>
 
     <main>
-      <article id="page-content"><p class="loading">Loading page</p></article>
+      <article id="page-content"><p class="loading">正在加载页面</p></article>
     </main>
 
     <aside id="sidebar-right" class="glass">
-      <header>
-        <h2>Open audits</h2>
-      </header>
-      <div id="audit-list"><p class="muted" style="padding: 14px;">—</p></div>
+      <section class="side-section">
+        <header>
+          <h2>工作台健康状态</h2>
+        </header>
+        <div id="health-status"><p class="muted" style="padding: 14px;">正在读取状态</p></div>
+      </section>
+      <section class="side-section">
+        <header>
+          <h2>待处理审阅</h2>
+        </header>
+        <div id="audit-list"><p class="muted" style="padding: 14px;">—</p></div>
+      </section>
     </aside>
 
     <div id="feedback-popover" class="hidden">
-      <button id="feedback-trigger" class="btn btn-cta" type="button">💬 Add feedback</button>
+      <button id="feedback-trigger" class="btn btn-cta" type="button">💬 添加审阅意见</button>
     </div>
 
     <dialog id="feedback-dialog">
       <form id="feedback-form">
         <div class="dialog-inner">
-          <h3>New audit feedback</h3>
+          <h3>新建审阅意见</h3>
 
           <div class="field">
-            <label class="field-label">Selected text</label>
+            <label class="field-label">选中文本</label>
             <pre id="feedback-preview"></pre>
           </div>
 
           <div class="field">
-            <label class="field-label">Severity</label>
+            <label class="field-label">Severity / 严重性</label>
             <div id="feedback-severity">
               <label data-sev="info"><input type="radio" name="severity" value="info" /><span class="chip">info</span></label>
               <label data-sev="suggest"><input type="radio" name="severity" value="suggest" /><span class="chip">suggest</span></label>
@@ -66,13 +74,13 @@
           </div>
 
           <div class="field">
-            <label class="field-label" for="feedback-comment">Comment (markdown allowed)</label>
-            <textarea id="feedback-comment" placeholder="Explain what's wrong or what should change…"></textarea>
+            <label class="field-label" for="feedback-comment">评论内容（支持 markdown）</label>
+            <textarea id="feedback-comment" placeholder="说明哪里有问题，或者你希望如何修改……"></textarea>
           </div>
 
           <div class="dialog-buttons">
-            <button type="button" id="feedback-cancel" class="btn btn-ghost">Cancel</button>
-            <button type="submit" id="feedback-save" class="btn btn-cta">Save feedback</button>
+            <button type="button" id="feedback-cancel" class="btn btn-ghost">取消</button>
+            <button type="submit" id="feedback-save" class="btn btn-cta">保存意见</button>
           </div>
         </div>
       </form>
@@ -80,25 +88,25 @@
 
     <div id="graph-overlay" class="hidden">
       <div class="graph-header">
-        <h2>Object graph</h2>
+        <h2>对象图</h2>
         <div class="graph-controls">
-          <button id="graph-reset" class="btn btn-ghost" type="button">Reset</button>
-          <button id="graph-close" class="btn btn-icon btn-ghost" type="button" title="Close (G or Esc)">✕</button>
+          <button id="graph-reset" class="btn btn-ghost" type="button">重置</button>
+          <button id="graph-close" class="btn btn-icon btn-ghost" type="button" title="关闭 (G 或 Esc)">✕</button>
         </div>
       </div>
       <div id="graph-svg-wrap">
         <canvas id="graph-particles"></canvas>
         <svg id="graph-svg"></svg>
         <div class="graph-hint">
-          drag nodes · <kbd>scroll</kbd> zoom · <kbd>click</kbd> open
+          拖拽节点 · <kbd>滚轮</kbd> 缩放 · <kbd>点击</kbd> 打开
         </div>
         <div class="graph-legend">
-          <div class="legend-row"><span class="legend-dot projects"></span> projects</div>
-          <div class="legend-row"><span class="legend-dot ideas"></span> ideas</div>
-          <div class="legend-row"><span class="legend-dot knowledge"></span> knowledge</div>
-          <div class="legend-row"><span class="legend-dot people"></span> people</div>
-          <div class="legend-row"><span class="legend-dot review"></span> review</div>
-          <div class="legend-row"><span class="legend-dot other"></span> other</div>
+          <div class="legend-row"><span class="legend-dot projects"></span> projects 项目</div>
+          <div class="legend-row"><span class="legend-dot ideas"></span> ideas 想法</div>
+          <div class="legend-row"><span class="legend-dot knowledge"></span> knowledge 知识</div>
+          <div class="legend-row"><span class="legend-dot people"></span> people 人物</div>
+          <div class="legend-row"><span class="legend-dot review"></span> review 队列</div>
+          <div class="legend-row"><span class="legend-dot other"></span> other 其他</div>
         </div>
       </div>
     </div>
