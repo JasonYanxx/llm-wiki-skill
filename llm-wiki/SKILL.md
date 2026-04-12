@@ -133,6 +133,11 @@ Compile should not overwrite these sections.
 - web navigation/graph support
 - generated indexes
 
+The registry `meta` block may also carry:
+- `repo_roots`
+  - shape: `{ "<repo-slug>": "<absolute-or-workbench-relative-local-path>" }`
+  - purpose: resolve `repo:<project-slug>/<path-inside-repo>` source refs for lint and other repo-aware maintenance
+
 ## Object rules
 
 ### Project
@@ -275,6 +280,8 @@ Focus:
 - disconnected compiled objects
 - stale compiled pages whose source refs changed
 - audit/log shape
+
+For repo-backed stale checks, `repo:` refs are resolved through `compiled/_meta/registry.json.meta.repo_roots`.
 
 Default behavior:
 - report issues

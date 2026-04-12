@@ -18,6 +18,12 @@ The canonical model is now:
 - `audit/`
 - `log/`
 
+The registry contract now includes:
+- `compiled/_meta/registry.json`
+- `meta.repo_roots`: a mapping of `repo_slug -> local repo path`
+
+`repo:` source refs keep the form `repo:<project-slug>/<path-inside-repo>` and are resolved through `meta.repo_roots`.
+
 Legacy `CLAUDE.md` and `wiki/` material may still be used as migration input, but they are no longer canonical truth.
 
 ## What is included
@@ -108,3 +114,4 @@ Then enable **Research Workbench Audit** in Obsidian community plugins.
 - Existing technical IDs and script paths are kept stable for compatibility.
 - The web `--wiki` flag still points at the workbench root.
 - Repo-aware project signals in v1 should stay limited to explicit control docs such as `PROJECT.md`, `README.md`, or `docs/index.md`.
+- To enable repo-backed stale checks in lint, keep `compiled/_meta/registry.json.meta.repo_roots` updated with local repo roots.

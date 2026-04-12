@@ -71,6 +71,7 @@ For v1, keep repo-aware signals intentionally shallow:
 - prefer explicit control docs such as `PROJECT.md`, `README.md`, `docs/index.md`
 - do not rely on deep repo crawling
 - do not treat Obsidian as the execution body
+- set `compiled/_meta/registry.json.meta.repo_roots` for any project whose compiled pages use `repo:` source refs
 
 ## Graph expectations
 

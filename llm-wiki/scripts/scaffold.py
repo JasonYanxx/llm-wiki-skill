@@ -46,8 +46,10 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import sys
 from datetime import date, datetime
+from pathlib import Path
 
 
 def scaffold(root: str, title: str) -> None:
@@ -56,6 +58,7 @@ def scaffold(root: str, title: str) -> None:
     today_compact = today.strftime("%Y%m%d")
     now_hm = datetime.now().strftime("%H:%M")
     workbench_name = title.strip() or "Research Workbench"
+    helper_dir = Path(__file__).resolve().parent
 
     dirs = [
         "raw/inbox",
@@ -117,6 +120,7 @@ def scaffold(root: str, title: str) -> None:
             "generated_at": f"{today_iso}T00:00:00",
             "workbench_title": workbench_name,
             "canonical_schema": "WORKBENCH.md",
+            "repo_roots": {},
             "notes": "Registry is the machine-readable source for generated indexes and object-aware tooling.",
         },
         "objects": [
@@ -160,8 +164,8 @@ Next steps:
   2. Capture new material into raw/inbox/ or raw/external/
   3. Promote stable ideas and projects only after confirmation
   4. Run compile/review passes in batches, not continuously
-  5. Run lint periodically:  python3 scripts/lint_wiki.py {root}
-  6. Review audits:         python3 scripts/audit_review.py {root} --open
+  5. Run lint periodically:  {render_helper_command(helper_dir / "lint_wiki.py", root)}
+  6. Review audits:         {render_helper_command(helper_dir / "audit_review.py", root, "--open")}
 """
     )
 
@@ -202,7 +206,7 @@ It is not optimized for:
 - `outputs/` holds temporary query artifacts and non-canonical generated material.
 - `log/YYYYMMDD.md` records operation history.
 - All diagrams are mermaid. All formulas are KaTeX.
-- The preferred linking style is natural inline Obsidian links such as `[[Canonical Page|natural phrase]]`.
+- The preferred linking style is natural inline Obsidian links with readable aliases when helpful.
 
 ## 3. Object Protocols
 
@@ -493,6 +497,12 @@ def _write(root: str, rel_path: str, content: str) -> None:
     os.makedirs(os.path.dirname(full_path) or ".", exist_ok=True)
     with open(full_path, "w", encoding="utf-8") as handle:
         handle.write(content)
+
+
+def render_helper_command(script_path: Path, root: str, *extra_args: str) -> str:
+    parts = [shlex.quote(sys.executable), shlex.quote(str(script_path)), shlex.quote(root)]
+    parts.extend(shlex.quote(arg) for arg in extra_args)
+    return " ".join(parts)
 
 
 if __name__ == "__main__":

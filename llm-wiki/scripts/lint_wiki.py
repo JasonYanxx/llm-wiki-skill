@@ -82,6 +82,13 @@ VALID_STATUSES = {"open", "resolved"}
 VALID_SOURCES = {"obsidian-plugin", "web-viewer", "manual"}
 
 
+def collect_root_markdown_files(root: Path) -> list[Path]:
+    return sorted(
+        path for path in root.glob("*.md")
+        if path.is_file() and not path.name.startswith(".")
+    )
+
+
 def collect_markdown_files(root: Path, rel_dir: str) -> list[Path]:
     base = root / rel_dir
     if not base.exists():
@@ -94,6 +101,15 @@ def collect_markdown_files(root: Path, rel_dir: str) -> list[Path]:
 
 def build_page_lookup(root: Path) -> dict[str, Path]:
     pages: dict[str, Path] = {}
+    for path in collect_root_markdown_files(root):
+        rel = path.relative_to(root).as_posix()
+        no_ext = path.relative_to(root).with_suffix("").as_posix()
+        stem = path.stem
+        pages.setdefault(rel, path)
+        pages.setdefault(no_ext, path)
+        pages.setdefault(stem, path)
+        pages.setdefault(stem.lower(), path)
+
     for rel_dir in ("compiled", "indexes", "raw", "outputs", "wiki"):
         base = root / rel_dir
         if not base.exists():
@@ -172,6 +188,15 @@ def load_registry(path: Path) -> tuple[dict | None, list[str]]:
     if "objects" not in data or not isinstance(data["objects"], list):
         issues.append("registry missing top-level `objects` array")
         return data, issues
+    repo_roots = data["meta"].get("repo_roots") if isinstance(data.get("meta"), dict) else None
+    if repo_roots is not None and not isinstance(repo_roots, dict):
+        issues.append("registry.meta.repo_roots must be an object when present")
+    elif isinstance(repo_roots, dict):
+        for slug, repo_root in repo_roots.items():
+            if not isinstance(slug, str) or not slug:
+                issues.append("registry.meta.repo_roots contains a non-string or empty slug")
+            if not isinstance(repo_root, str) or not repo_root.strip():
+                issues.append(f"registry.meta.repo_roots[{slug!r}] must be a non-empty string path")
 
     for index, obj in enumerate(data["objects"]):
         prefix = f"registry.objects[{index}]"
@@ -202,10 +227,46 @@ def resolve_vault_ref(root: Path, ref: str) -> Path | None:
     return full if full.exists() else None
 
 
+def resolve_repo_ref(root: Path, ref: str, repo_roots: dict[str, str]) -> tuple[Path | None, str | None]:
+    if not ref.startswith("repo:"):
+        return None, None
+
+    rel = ref[len("repo:"):]
+    slug, sep, inner_path = rel.partition("/")
+    if not sep or not slug or not inner_path:
+        return None, f"invalid repo source ref `{ref}` (expected `repo:<project-slug>/<path>`)"
+
+    repo_root_raw = repo_roots.get(slug)
+    if not isinstance(repo_root_raw, str) or not repo_root_raw.strip():
+        return None, f"repo source ref `{ref}` cannot be resolved because `{slug}` is missing from registry.meta.repo_roots"
+
+    repo_root = Path(repo_root_raw).expanduser()
+    if not repo_root.is_absolute():
+        repo_root = root / repo_root
+    repo_root = repo_root.resolve()
+    target = (repo_root / inner_path).resolve()
+
+    try:
+        target.relative_to(repo_root)
+    except ValueError:
+        return None, f"repo source ref `{ref}` escapes the configured repo root `{repo_root}`"
+
+    if not target.exists():
+        return None, f"repo source ref `{ref}` points to a missing file `{target}`"
+    if target.is_dir():
+        index = target / "index.md"
+        if index.exists():
+            return index, None
+        return None, f"repo source ref `{ref}` points to a directory without `index.md`"
+
+    return target, None
+
+
 def lint(root: str) -> int:
     root_path = Path(root)
     issues = 0
 
+    root_markdown_files = collect_root_markdown_files(root_path)
     compiled_files = [
         p for p in collect_markdown_files(root_path, "compiled")
         if "_meta" not in p.relative_to(root_path).parts
@@ -396,8 +457,12 @@ def lint(root: str) -> int:
         print("✅ No disconnected compiled objects")
 
     # ── Pass 6: stale compiled pages ──────────────────────────────────────
+    registry_meta = registry.get("meta", {}) if isinstance(registry, dict) else {}
+    repo_roots = registry_meta.get("repo_roots", {}) if isinstance(registry_meta, dict) else {}
+    if not isinstance(repo_roots, dict):
+        repo_roots = {}
     stale_issues: list[str] = []
-    skipped_repo_refs = 0
+    source_ref_issues: list[str] = []
     for obj in registry_objects:
         if not isinstance(obj, dict):
             continue
@@ -413,26 +478,36 @@ def lint(root: str) -> int:
             if not isinstance(ref, str):
                 continue
             if ref.startswith("repo:"):
-                skipped_repo_refs += 1
-                continue
-            source_path = resolve_vault_ref(root_path, ref)
+                source_path, source_issue = resolve_repo_ref(root_path, ref, repo_roots)
+                if source_issue:
+                    source_ref_issues.append(source_issue)
+                    continue
+            else:
+                source_path = resolve_vault_ref(root_path, ref)
+                source_issue = None
             if not source_path:
                 continue
             if source_path.stat().st_mtime > object_mtime:
                 stale_issues.append(f"`{object_path}` is older than `{ref}`")
+
+    if source_ref_issues:
+        print(f"\n🔴 Source ref resolution issues ({len(source_ref_issues)}):")
+        for item in source_ref_issues:
+            print(f"   {item}")
+        issues += len(source_ref_issues)
+
     if stale_issues:
         print(f"\n🟡 Potentially stale compiled pages ({len(stale_issues)}):")
         for item in stale_issues:
             print(f"   {item}")
         issues += len(stale_issues)
     else:
-        print("✅ No stale compiled pages detected from vault source refs")
-    if skipped_repo_refs:
-        print(f"ℹ️  Skipped {skipped_repo_refs} repo source refs (repo timestamps are not resolved by this lint pass)")
+        if not source_ref_issues:
+            print("✅ No stale compiled pages detected from vault or repo source refs")
 
     # ── Pass 7: unresolved wikilinks ──────────────────────────────────────
     link_issues: list[str] = []
-    page_scan_files = compiled_files + index_files
+    page_scan_files = root_markdown_files + compiled_files + index_files
     for path in page_scan_files:
         rel = path.relative_to(root_path).as_posix()
         text = path.read_text(encoding="utf-8")

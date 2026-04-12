@@ -74,6 +74,9 @@ What it is not for:
   - `outputs/`
   - `audit/`
   - `log/`
+- Registry support contract:
+  - `compiled/_meta/registry.json`
+  - `meta.repo_roots` stores `repo_slug -> local repo path` mappings for resolving `repo:` source refs
 - Preferred link style: natural inline Obsidian links
 - All diagrams are mermaid
 - All formulas are KaTeX

@@ -59,6 +59,8 @@ related_object_ids: [idea:..., knowledge:...]
 <Natural prose with inline links to raw notes, repo control docs, and related pages.>
 ```
 
+When using `repo:` source refs, make sure `compiled/_meta/registry.json.meta.repo_roots` maps the same `<project-slug>` to the local repo root so lint can resolve the execution doc on disk.
+
 ## Idea page template
 
 ```markdown
