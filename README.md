@@ -1,96 +1,103 @@
-# llm-wiki
+# llm-wiki-skill
 
-**An OpenClaw / Codex Agent Skill for building Karpathy-style LLM knowledge bases.**
+**An agent skill and tooling stack for an AI-maintained Obsidian research workbench.**
 
-> Experimental skill — will iterate over time.
-> Please send your feedbacks in github issues.
+This project started from the Karpathy-style `llm-wiki` pattern and is being evolved into a research workbench centered on:
+- low-friction raw capture
+- compiled research objects
+- audit-driven correction
+- registry-aware maintenance
+- weekly compile/review loops
 
-Inspired by [Andrej Karpathy's llm-wiki Gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) and the community's work building on it.
+The canonical model is now:
+- `WORKBENCH.md`
+- `raw/`
+- `compiled/`
+- `indexes/`
+- `outputs/`
+- `audit/`
+- `log/`
 
-## What this is
+The registry contract now includes:
+- `compiled/_meta/registry.json`
+- `meta.repo_roots`: a mapping of `repo_slug -> local repo path`
 
-Instead of RAG (re-retrieving raw docs on every query), this pattern has the LLM **compile** raw sources into a persistent, cross-linked Markdown wiki. Every `compile`, `ingest`, `query`, `lint`, and `audit` pass makes the wiki richer. Knowledge compounds over time.
+`repo:` source refs keep the form `repo:<project-slug>/<path-inside-repo>` and are resolved through `meta.repo_roots`.
 
-- You own: sourcing raw material, asking good questions, steering direction, filing feedback on things the AI got wrong.
-- LLM owns: all writing, cross-referencing, filing, bookkeeping, and acting on your feedback.
+Legacy `CLAUDE.md` and `wiki/` material may still be used as migration input, but they are no longer canonical truth.
 
-The skill comes with two companion tools in this repo:
+## What is included
 
-- **`plugins/obsidian-audit/`** — an Obsidian plugin: select text in any page, leave a comment with severity, the comment is written into `audit/` as an anchored markdown file.
-- **`web/`** — a local Node.js preview server: renders the wiki with mermaid, KaTeX, and wikilinks, lets you select + file feedback from the browser, and shows open audits per page.
+- `llm-wiki/` — the skill, references, and Python helper scripts
+- `plugins/obsidian-audit/` — Obsidian audit plugin for anchored feedback
+- `web/` — local viewer for `indexes/` and `compiled/`, plus audit filing and graph browsing
+- `audit-shared/` — shared schema and anchor logic used by the web viewer and the Obsidian plugin
 
-Both tools share a single TypeScript library (`audit-shared/`) so audit files written from Obsidian and the web viewer are byte-identical in shape.
-
-## Install
+## Install the skill
 
 ```bash
-# Copy the skill into your agent's skills directory
-cp -r llm-wiki/ ~/.claude/skills/llm-wiki/
-# or for Codex
 cp -r llm-wiki/ ~/.codex/skills/llm-wiki/
 ```
 
-Then reference it in your agent config, or simply paste `llm-wiki/SKILL.md` into your agent context.
+Then reference `llm-wiki/SKILL.md` in your agent context.
 
 ## Quick start
 
 ```bash
-# 1. Scaffold a new wiki
-python3 llm-wiki/scripts/scaffold.py ~/my-wiki "My Research Topic"
+# 1. Scaffold a new workbench
+python3 llm-wiki/scripts/scaffold.py ~/my-workbench "My Research Workbench"
 
-# 2. Add a source
-cp my-article.md ~/my-wiki/raw/articles/
+# 2. Capture new material into raw/
+#    e.g. raw/inbox/, raw/daily/, raw/external/papers/
 
-# 3. Tell your agent: "ingest raw/articles/my-article.md"
+# 3. Ask your agent to ingest/compile/review against the new workbench
 
-# 4. Ask questions: "what does the wiki say about X?"
+# 4. Run lint periodically
+python3 llm-wiki/scripts/lint_wiki.py ~/my-workbench
 
-# 5. Run lint periodically
-python3 llm-wiki/scripts/lint_wiki.py ~/my-wiki
-
-# 6. File a comment from the web viewer or Obsidian plugin, then process it
-python3 llm-wiki/scripts/audit_review.py ~/my-wiki --open
-# then tell the agent: "audit: process the open comments"
+# 5. Review open audits
+python3 llm-wiki/scripts/audit_review.py ~/my-workbench --open
 ```
 
 ## Repo contents
 
-```
+```text
 llm-wiki-skill/
-├── llm-wiki/                    ← The skill
-│   ├── SKILL.md                 ← Main skill file (read by agent)
+├── llm-wiki/
+│   ├── SKILL.md
 │   ├── references/
-│   │   ├── schema-guide.md      ← CLAUDE.md schema template
-│   │   ├── article-guide.md     ← Article writing (divide & conquer, mermaid, KaTeX)
-│   │   ├── log-guide.md         ← log/ folder convention
-│   │   ├── audit-guide.md       ← audit file format + processing workflow
-│   │   └── tooling-tips.md      ← Obsidian, qmd, plugin + web
+│   │   ├── schema-guide.md
+│   │   ├── article-guide.md
+│   │   ├── log-guide.md
+│   │   ├── audit-guide.md
+│   │   └── tooling-tips.md
 │   └── scripts/
-│       ├── scaffold.py          ← Bootstrap new wiki directory
-│       ├── lint_wiki.py         ← 7-pass health check (links, audit, log shape)
-│       └── audit_review.py      ← Group open/resolved audits by target
-├── audit-shared/                ← Shared TypeScript library
-│   └── src/{schema,anchor,id,serialize,index}.ts
-├── plugins/obsidian-audit/      ← Obsidian plugin — file audit from vault
-└── web/                         ← Local Node.js preview + feedback server
-    ├── server/                  ← Express + markdown-it + KaTeX + wikilinks
-    └── client/                  ← Vanilla-TS SPA with mermaid + selection popover
+│       ├── scaffold.py
+│       ├── lint_wiki.py
+│       └── audit_review.py
+├── audit-shared/
+├── plugins/obsidian-audit/
+└── web/
 ```
 
-## Running the web viewer
+## Web viewer
 
 ```bash
-# one-time setup (builds audit-shared, installs deps, bundles client)
 cd audit-shared && npm install && npm run build && cd ..
 cd web && npm install && npm run build && cd ..
-
-# start the server against a wiki
 cd web
-npm start -- --wiki "/path/to/your/wiki-root" --port 4175
-# open http://127.0.0.1:4175
+npm start -- --wiki "/path/to/your/workbench-root" --port 4175
 ```
 
-## Building the Obsidian plugin
+Open `http://127.0.0.1:4175`.
+
+The web viewer is intentionally a secondary browsing surface. It focuses on:
+- `indexes/`
+- `compiled/`
+- graph browsing for compiled objects
+- anchored audit filing
+
+## Obsidian plugin
 
 ```bash
 cd audit-shared && npm install && npm run build && cd ..
@@ -98,23 +105,13 @@ cd plugins/obsidian-audit
 npm install
 npm run build
 npm run link -- "/path/to/your/Obsidian vault"
-# Enable 'LLM Wiki Audit' in Obsidian → Settings → Community plugins.
 ```
 
-## Use cases
+Then enable **Research Workbench Audit** in Obsidian community plugins.
 
-- **Research deep-dive** — reading papers/articles on a topic over weeks
-- **Personal wiki** — Farzapedia-style: journal entries compiled into personal encyclopedia  
-- **Team knowledge base** — fed by Slack threads, meeting notes, docs
-- **Reading companion** — building a rich companion wiki as you read a book
+## Notes
 
-## Related work
-
-- [Karpathy's original Gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
-- [pedronauck/skills karpathy-kb](https://github.com/pedronauck/skills/tree/main/skills/karpathy-kb) — full Obsidian vault integration
-- [Astro-Han/karpathy-llm-wiki](https://github.com/Astro-Han/karpathy-llm-wiki) — example implementation
-- [qmd](https://github.com/tobi/qmd) — semantic search for Markdown wikis
-
-## License
-
-MIT
+- Existing technical IDs and script paths are kept stable for compatibility.
+- The web `--wiki` flag still points at the workbench root.
+- Repo-aware project signals in v1 should stay limited to explicit control docs such as `PROJECT.md`, `README.md`, or `docs/index.md`.
+- To enable repo-backed stale checks in lint, keep `compiled/_meta/registry.json.meta.repo_roots` updated with local repo roots.

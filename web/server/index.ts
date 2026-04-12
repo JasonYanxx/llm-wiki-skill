@@ -46,7 +46,7 @@ app.get("/", (_req, res) => {
 
 // ── Start ───────────────────────────────────────────────────────────────────
 app.listen(cfg.port, cfg.host, () => {
-  console.log(`llm-wiki web server listening on http://${cfg.host}:${cfg.port}`);
-  console.log(`  wiki root: ${cfg.wikiRoot}`);
+  console.log(`research workbench web server listening on http://${cfg.host}:${cfg.port}`);
+  console.log(`  workbench root: ${cfg.wikiRoot}`);
   console.log(`  author:    ${cfg.author}`);
 });

@@ -93,7 +93,7 @@ function resolveTargetRelativeToWiki(vaultPath: string, wikiRoot: string): strin
   if (vaultPath.startsWith(normalized + "/")) {
     return vaultPath.slice(normalized.length + 1);
   }
-  // Target lives outside the configured wiki root — keep the vault-relative
+  // Target lives outside the configured workbench root — keep the vault-relative
   // path. This will be flagged by lint if it doesn't resolve to a file.
   return vaultPath;
 }

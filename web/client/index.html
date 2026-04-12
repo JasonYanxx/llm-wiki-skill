@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LLM Wiki</title>
+    <title>Research Workbench</title>
     <link rel="preconnect" href="https://rsms.me/" />
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
     <link rel="stylesheet" href="/assets/styles.css" />
@@ -12,11 +12,11 @@
   <body>
     <header id="topbar" class="glass">
       <div class="topbar-left">
-        <span class="brand"><span class="brand-dot"></span>LLM Wiki</span>
+        <span class="brand"><span class="brand-dot"></span>Research Workbench</span>
         <span id="wiki-title"></span>
       </div>
       <div class="topbar-right">
-        <button id="btn-graph" class="btn" type="button" title="Knowledge graph (G)">
+        <button id="btn-graph" class="btn" type="button" title="Object graph (G)">
           <span>⬡</span> Graph
         </button>
         <button id="btn-refresh" class="btn btn-icon btn-ghost" type="button" title="Refresh audits">↻</button>
@@ -80,7 +80,7 @@
 
     <div id="graph-overlay" class="hidden">
       <div class="graph-header">
-        <h2>Knowledge graph</h2>
+        <h2>Object graph</h2>
         <div class="graph-controls">
           <button id="graph-reset" class="btn btn-ghost" type="button">Reset</button>
           <button id="graph-close" class="btn btn-icon btn-ghost" type="button" title="Close (G or Esc)">✕</button>
@@ -93,9 +93,11 @@
           drag nodes · <kbd>scroll</kbd> zoom · <kbd>click</kbd> open
         </div>
         <div class="graph-legend">
-          <div class="legend-row"><span class="legend-dot concepts"></span> concepts</div>
-          <div class="legend-row"><span class="legend-dot entities"></span> entities</div>
-          <div class="legend-row"><span class="legend-dot summaries"></span> summaries</div>
+          <div class="legend-row"><span class="legend-dot projects"></span> projects</div>
+          <div class="legend-row"><span class="legend-dot ideas"></span> ideas</div>
+          <div class="legend-row"><span class="legend-dot knowledge"></span> knowledge</div>
+          <div class="legend-row"><span class="legend-dot people"></span> people</div>
+          <div class="legend-row"><span class="legend-dot review"></span> review</div>
           <div class="legend-row"><span class="legend-dot other"></span> other</div>
         </div>
       </div>

@@ -1,119 +1,171 @@
-# CLAUDE.md Schema Guide
+# WORKBENCH.md Guide
 
-`CLAUDE.md` (also read as `AGENTS.md` by some tools) is the **schema document** for a wiki topic. It tells the LLM agent the scope, conventions, current state, and open questions — every session should start by reading it together with `wiki/index.md`.
+`WORKBENCH.md` is the canonical system protocol for the research workbench.
+It replaces the old `CLAUDE.md` schema role.
 
-## Why it matters
+Every session should start by reading:
+- `WORKBENCH.md`
+- `indexes/Home.md`
 
-Without a schema, the LLM creates inconsistent page names, overlapping articles, and drifts from the wiki's intended scope. With a well-maintained schema, the LLM becomes a disciplined, consistent wiki maintainer.
+## Required section order
 
-**Co-evolve it with the wiki** — update after every major compile, ingest batch, or structural change.
+`WORKBENCH.md` should use this stable order:
 
-## Full template
+1. Purpose and Scope
+2. Global Conventions
+3. Object Protocols
+4. Object Matrix
+5. Operation Matrix
+6. Migration and Compatibility Notes
+
+Inside `Object Protocols`, keep the object chapters in this order:
+1. Project
+2. Idea
+3. Knowledge
+4. People
+5. Review
+
+## What it should decide
+
+`WORKBENCH.md` is not a scratchpad.
+It should lock the stable rules of the system:
+- canonical directory layout
+- object families and naming rules
+- ownership boundaries between AI-maintained and human-owned sections
+- operation contracts
+- compatibility rules for migration from legacy material
+
+## What it should not do
+
+Avoid turning `WORKBENCH.md` into:
+- a live task tracker
+- a project dashboard
+- a list of every current object
+- a long dump of volatile notes
+
+That information belongs in:
+- `indexes/Home.md`
+- object pages in `compiled/`
+- `log/`
+
+## Minimal template
 
 ```markdown
-# <Topic Title> Knowledge Base
+# <Workbench Title>
 
-> Schema document — read at the start of every session together with wiki/index.md.
+> Stable system protocol for the AI-maintained research workbench.
+> Read this together with `indexes/Home.md` at the start of every session.
 
-## Scope
+## 1. Purpose and Scope
 
-What this wiki covers:
-- <bullet list of included areas>
+What this workbench is for:
+- <research support use cases>
 
-What this wiki deliberately excludes:
-- <bullet list of out-of-scope areas>
+What it is not for:
+- <non-goals>
 
-## Operations
+## 2. Global Conventions
 
-This wiki follows the llm-wiki skill's five operations: `compile`, `ingest`, `query`, `lint`, `audit`.
-Every operation appends an entry to `log/YYYYMMDD.md`.
+- Canonical root contract:
+  - `WORKBENCH.md`
+  - `raw/`
+  - `compiled/`
+  - `indexes/`
+  - `outputs/`
+  - `audit/`
+  - `log/`
+- Registry support contract:
+  - `compiled/_meta/registry.json`
+  - `meta.repo_roots` stores `repo_slug -> local repo path` mappings for resolving `repo:` source refs
+- Preferred link style: natural inline Obsidian links
+- All diagrams are mermaid
+- All formulas are KaTeX
 
-## Naming conventions
+## 3. Object Protocols
 
-### Pages
-- **Concept pages** (`wiki/concepts/`): Title Case noun phrases. E.g., "Market Making Strategy", not "market making" or "MarketMakingStrategy".
-- **Folder-split concepts** (`wiki/concepts/<topic>/`): used when a topic would exceed ~1200 words as a single page. Contains `index.md` + one file per aspect.
-- **Entity pages** (`wiki/entities/`): Proper names. E.g., "Andrej Karpathy", "Obsidian", "Avellaneda-Stoikov Model".
-- **Summary pages** (`wiki/summaries/`): kebab-case source slug. E.g., "karpathy-llm-wiki-gist".
+### Project
+- Path: `compiled/projects/<project-slug>/index.md`
+- Status: `active | holding | done`
+- Fixed structure:
+  1. Overview
+  2. Status
+  3. Execution Entry
+  4. Related Objects
+  5. AI Compiled
+  6. My Notes
+  7. Provenance
 
-### Wikilinks
-- Always use `[[Page Title]]` — exact page title, case-sensitive.
-- For folder-split pages, link to the index: `[[concepts/Foo/index|Foo]]`.
-- Link the first mention of every entity or concept. Do not link the same page more than twice per article.
+### Idea
+- Path: `compiled/ideas/<idea-slug>.md`
+- Status: `spark | exploring | incubating | project-ready`
+- Fixed structure:
+  1. Proposition
+  2. Status
+  3. AI Judgment
+  4. Related Objects
+  5. My Notes
+  6. Provenance
 
-### Frontmatter
-Every wiki page has YAML frontmatter:
-```yaml
----
-title: <Page Title>
-type: concept | entity | summary
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
-sources: [list of raw/ slugs this page draws from]
-tags: [relevant tags]
----
+### Knowledge
+- Path: `compiled/knowledge/<English Canonical Title>.md`
+- Fixed structure:
+  1. Current Understanding
+  2. Why It Matters
+  3. Related Projects and Ideas
+  4. AI Compiled Body
+  5. Provenance
+
+### People
+- Path: `compiled/people/<source-facing name>.md`
+- Fixed structure:
+  1. Current Relationship
+  2. Academic Profile
+  3. Related Objects
+  4. Recent Interactions
+  5. Next Follow-up
+  6. Provenance
+
+### Review
+- Path: `compiled/review/Review.md`
+- Fixed structure:
+  1. Overview
+  2. Noticed
+  3. Organized
+  4. Retained
+  5. Deferred
+
+## 4. Object Matrix
+
+| Object | Canonical path | Operating style | Human-owned zone |
+|---|---|---|---|
+| Project | `compiled/projects/<slug>/index.md` | AI-led control page | `My Notes` |
+| Idea | `compiled/ideas/<slug>.md` | human-led with AI judgment | `My Notes` |
+| Knowledge | `compiled/knowledge/<Title>.md` | AI-led compiled page | optional additive notes |
+| People | `compiled/people/<Name>.md` | AI-led compiled page | optional additive notes |
+| Review | `compiled/review/Review.md` | AI-led queue | none |
+
+## 5. Operation Matrix
+
+| Operation | Reads | Writes | Notes |
+|---|---|---|---|
+| `ingest` | source material, `WORKBENCH.md` | `raw/`, `log/` | writes raw only |
+| `compile` | raw, repo control docs, compiled, registry | `compiled/`, `indexes/`, registry, `log/` | signal-driven by default |
+| `query` | registry, compiled, selective raw/repo fallback | `outputs/queries/`, `log/` | durable results require `promote` |
+| `lint` | registry, compiled, indexes, audit, log | report only by default | do not silently rewrite canonical files |
+| `audit` | audit entries, targets, supporting sources | target files, `audit/resolved/`, `log/` | never ignore open audits |
+| `review` | knowledge pages, registry, selective evidence | `compiled/review/Review.md`, `log/` | maintain digestion queue |
+| `promote` | candidates, compiled pages, registry | target compiled object, `log/` | requires confirmation |
+
+## 6. Migration and Compatibility Notes
+
+- `WORKBENCH.md` replaces `CLAUDE.md`
+- `compiled/` replaces `wiki/`
+- `indexes/` replaces the old single `wiki/index.md`
+- legacy material may be read as migration input but is not canonical
 ```
 
-### Diagrams and formulas
-- All diagrams are **mermaid**. No ASCII art.
-- All formulas are **KaTeX** (inline `$...$` or block `$$...$$`).
+## Maintenance guidance
 
-### Raw file policy
-- Small text sources → copy into `raw/<subfolder>/`.
-- Large binaries → create a pointer file at `raw/refs/<slug>.md` with `kind: ref` frontmatter and an `external_path` field. Do not copy the binary.
-
-## Current articles
-
-### Concepts
-- [[<Concept Title>]] — one-line summary
-- [[concepts/<Topic>/index|<Topic>]] — (folder-split) one-line summary
-    - [[<Topic>/<aspect-1>]] — ...
-
-### Entities
-- [[<Entity Name>]] — one-line summary
-
-### Summaries
-- [[summaries/<slug>]] — source title (date)
-
-## Open research questions
-
-- <Questions that should drive future ingest/query work>
-- <Things the wiki currently doesn't cover well>
-- <Contradictions or gaps noticed between articles>
-
-## Research gaps
-
-Sources to ingest:
-- [ ] <URL or paper title> — why it's relevant
-
-## Audit backlog
-
-Count of open audits per target (filled in after running `audit_review.py --open`):
-- <file> — N open
-- ...
-
-## Notes for the LLM
-
-<Any special instructions: tone, depth level, language (zh/en), how to handle contradictions, etc.>
-```
-
-## What makes a good schema
-
-**Good scope definition** prevents sprawl. A wiki about "LLM memory techniques" should exclude "LLM training" even though they're related.
-
-**Explicit naming conventions** keep wikilinks from breaking. If you decide concept pages use Title Case, enforce it — a broken wikilink is an orphan.
-
-**Maintained article list** lets the LLM know what already exists before creating a new page. The most common error is creating duplicate articles with slightly different names.
-
-**Open research questions** give the LLM direction. Without them, the LLM defaults to ingesting the most obvious sources and missing your actual questions.
-
-**Audit backlog** surfaces what the human has flagged as wrong. The AI should glance at it at the start of every session to decide whether to run an `audit` op before ingesting new material.
-
-## Update cadence
-
-- After every new concept page: add to "Current articles".
-- After every ingest batch: update "Sources to ingest" checklist.
-- After every lint pass: update "Research gaps".
-- After every audit pass: refresh the "Audit backlog" counts.
-- Monthly: review scope, prune stale research questions.
-
+- Update `WORKBENCH.md` only when a system rule changes.
+- Update `indexes/Home.md` and object pages for day-to-day state.
+- Keep object and operation matrices short and stable.

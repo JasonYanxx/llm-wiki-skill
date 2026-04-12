@@ -26,7 +26,20 @@ function renderNode(
     if (!isRoot) {
       const li = document.createElement("li");
       li.className = "tree-dir";
-      li.textContent = node.name;
+      const hasIndex = (node.children ?? []).some((child) => child.kind === "file" && child.name === "index");
+      if (hasIndex) {
+        const a = document.createElement("a");
+        a.href = `/?page=${encodeURIComponent(node.path)}`;
+        a.textContent = node.name;
+        a.setAttribute("data-path", node.path);
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          onSelect(node.path);
+        });
+        li.appendChild(a);
+      } else {
+        li.textContent = node.name;
+      }
       parent.appendChild(li);
     }
     const ul = document.createElement("ul");

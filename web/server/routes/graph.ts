@@ -4,10 +4,10 @@ import type { Request, Response } from "express";
 import type { ServerConfig } from "../config.js";
 
 export interface GraphNode {
-  id: string; // path relative to wikiRoot, e.g. "wiki/concepts/Transformers.md"
-  label: string; // display name (stem, e.g. "Transformers")
+  id: string; // path relative to wikiRoot, e.g. "compiled/knowledge/Calibration.md"
+  label: string; // display name
   path: string; // same as id, kept explicit for client
-  group: string; // concepts | entities | summaries | other
+  group: string; // projects | ideas | knowledge | people | review | other
   degree: number; // in + out link count, used for node sizing
   title: string | null;
 }
@@ -25,46 +25,57 @@ export interface GraphData {
 const WIKILINK_RE = /\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]/g;
 
 export function buildGraph(wikiRoot: string): GraphData {
-  const wikiDir = path.join(wikiRoot, "wiki");
-  if (!fs.existsSync(wikiDir)) return { nodes: [], edges: [] };
+  const compiledDir = path.join(wikiRoot, "compiled");
+  if (!fs.existsSync(compiledDir)) return { nodes: [], edges: [] };
 
-  const files = collectMdFiles(wikiDir);
+  const files = collectMdFiles(compiledDir).filter((f) => !f.includes(`${path.sep}_meta${path.sep}`));
+  const registryByPath = loadRegistryByPath(wikiRoot);
 
-  // Build a lookup table keyed by both the stem ("Transformers") and the
-  // relative-to-wiki path (e.g. "concepts/Transformers"), so wikilinks can
-  // resolve in either form.
+  // Build a lookup keyed by common wikilink forms so graph edges follow the
+  // compiled object layer without foregrounding raw/index pages.
   const byKey: Map<string, string> = new Map(); // key → rel-from-wikiRoot path
   const nodes: Map<string, GraphNode> = new Map();
 
   for (const f of files) {
-    const relFromWiki = path.relative(wikiDir, f).split(path.sep).join("/");
-    const id = `wiki/${relFromWiki}`;
+    const relFromRoot = path.relative(wikiRoot, f).split(path.sep).join("/");
+    const relFromCompiled = path.relative(compiledDir, f).split(path.sep).join("/");
+    const registryObject = registryByPath.get(relFromRoot);
     const stem = path.basename(f, ".md");
-    const parts = relFromWiki.split("/");
-    const group = parts.length > 1 ? parts[0]! : "other";
-    const title = extractTitle(fs.readFileSync(f, "utf-8")) ?? stem;
+    const isIndex = stem === "index";
+    const fallbackLabel = isIndex ? path.basename(path.dirname(f)) : stem;
+    const title = registryObject?.title ?? extractTitle(fs.readFileSync(f, "utf-8")) ?? fallbackLabel;
+    const group = normalizeGroup(registryObject?.type ?? relFromCompiled.split("/")[0] ?? "other");
+    const id = relFromRoot;
 
     const node: GraphNode = {
       id,
-      label: stem,
+      label: fallbackLabel,
       path: id,
       group,
       degree: 0,
       title,
     };
     nodes.set(id, node);
-    byKey.set(stem, id);
-    byKey.set(relFromWiki.replace(/\.md$/, ""), id);
-    // Also index by basename without extension in lowercase as a last-resort alias
-    byKey.set(stem.toLowerCase(), id);
+    indexKey(byKey, relFromRoot, id);
+    indexKey(byKey, relFromRoot.replace(/\.md$/, ""), id);
+    indexKey(byKey, relFromCompiled, id);
+    indexKey(byKey, relFromCompiled.replace(/\.md$/, ""), id);
+    indexKey(byKey, stem, id);
+    indexKey(byKey, fallbackLabel, id);
+    if (title) indexKey(byKey, title, id);
+    if (isIndex) {
+      indexKey(byKey, path.dirname(relFromRoot), id);
+      indexKey(byKey, path.dirname(relFromCompiled), id);
+      indexKey(byKey, path.basename(path.dirname(f)), id);
+    }
   }
 
   // Pass 2: build edges. Parse wikilinks per file and resolve targets.
   const edges: GraphEdge[] = [];
   const seenEdges = new Set<string>();
   for (const f of files) {
-    const relFromWiki = path.relative(wikiDir, f).split(path.sep).join("/");
-    const srcId = `wiki/${relFromWiki}`;
+    const relFromRoot = path.relative(wikiRoot, f).split(path.sep).join("/");
+    const srcId = relFromRoot;
     const text = fs.readFileSync(f, "utf-8");
     WIKILINK_RE.lastIndex = 0;
     let m: RegExpExecArray | null;
@@ -74,6 +85,10 @@ export function buildGraph(wikiRoot: string): GraphData {
       const tgtId =
         byKey.get(target) ??
         byKey.get(target.replace(/\.md$/, "")) ??
+        byKey.get(target.toLowerCase()) ??
+        byKey.get(path.posix.basename(target)) ??
+        byKey.get(path.posix.basename(target).toLowerCase()) ??
+        byKey.get(path.posix.dirname(target)) ??
         byKey.get(target.toLowerCase());
       if (!tgtId || tgtId === srcId) continue;
 
@@ -104,6 +119,23 @@ function collectMdFiles(dir: string): string[] {
   return out;
 }
 
+function loadRegistryByPath(wikiRoot: string): Map<string, { title?: string; type?: string }> {
+  const registryPath = path.join(wikiRoot, "compiled", "_meta", "registry.json");
+  if (!fs.existsSync(registryPath)) return new Map();
+  try {
+    const parsed = JSON.parse(fs.readFileSync(registryPath, "utf-8")) as {
+      objects?: Array<{ path?: string; title?: string; type?: string }>;
+    };
+    const out = new Map<string, { title?: string; type?: string }>();
+    for (const obj of parsed.objects ?? []) {
+      if (obj.path) out.set(obj.path, { title: obj.title, type: obj.type });
+    }
+    return out;
+  } catch {
+    return new Map();
+  }
+}
+
 function extractTitle(text: string): string | null {
   // frontmatter title
   const fm = /^---\n([\s\S]*?)\n---/.exec(text);
@@ -113,6 +145,22 @@ function extractTitle(text: string): string | null {
   }
   const h1 = /^#\s+(.+?)\s*$/m.exec(text);
   return h1 ? h1[1]! : null;
+}
+
+function indexKey(map: Map<string, string>, key: string, id: string): void {
+  const normalized = key.trim();
+  if (!normalized) return;
+  map.set(normalized, id);
+  map.set(normalized.toLowerCase(), id);
+}
+
+function normalizeGroup(group: string): string {
+  if (group === "project" || group === "projects") return "projects";
+  if (group === "idea" || group === "ideas") return "ideas";
+  if (group === "knowledge") return "knowledge";
+  if (group === "people") return "people";
+  if (group === "review") return "review";
+  return "other";
 }
 
 export function handleGraph(cfg: ServerConfig) {

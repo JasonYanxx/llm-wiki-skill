@@ -1,86 +1,66 @@
-# Log Guide — the `log/` folder
+# Log Guide — `log/`
 
-The wiki's operation log is a **folder**, not a single file. One file per day, named `log/YYYYMMDD.md`. This keeps individual files small, makes daily activity easy to scan, and plays well with git diffs.
+The workbench log is one file per day: `log/YYYYMMDD.md`.
+It records operations, not full content.
 
-## File naming
+## File shape
 
-- Filename: `log/YYYYMMDD.md` (e.g., `log/20260409.md`)
-- Regex: `^\d{8}\.md$`
-- No other files are allowed at the top of `log/`. `scripts/lint_wiki.py` will flag stray files.
+- Filename: `log/YYYYMMDD.md`
+- H1: `# YYYY-MM-DD`
+- Each operation entry starts with:
+  - `## [HH:MM] <op> | <one-line description>`
 
-## File format
+Example:
 
 ```markdown
-# 2026-04-09
+# 2026-04-11
 
-## [09:15] ingest | google-gemma-4-article
-- Source: raw/articles/google-gemma-4.md
-- Touched: 5 wiki pages
-  - summaries/google-gemma-4 (new)
-  - concepts/Gemma.md (updated)
-  - entities/Google.md (updated)
-  - entities/Gemma 4.md (new)
-  - index.md (updated)
+## [09:15] ingest | imported trust-calibration paper
+- Source: raw/external/papers/trust-calibration.md
+- Result: raw material normalized for later compile
 
-## [14:30] audit | resolved 20260409-143022-a1b2
-- Target: tech/Claude_Code.md
-- Change: corrected file count from ~1,900 to ~1,800 per commit abc123
-- Moved to: audit/resolved/20260409-143022-a1b2.md
+## [11:20] compile | refreshed calibration knowledge object
+- Updated: compiled/knowledge/Calibration.md
+- Updated: indexes/Knowledge.md
+- Updated: compiled/_meta/registry.json
 
-## [15:05] lint | 2 dead links found, 2 fixed
-- [[Claude Code Architecture]] → [[tech/claude-code/Claude_Code_Architecture]] in 2 files
+## [14:05] review | regrouped digestion queue
+- Updated: compiled/review/Review.md
+- Moved 2 items from noticed to organized
+
+## [16:40] audit | resolved 20260411-164001-a1b2
+- Target: compiled/knowledge/Calibration.md
+- Change: corrected the trust definition and clarified provenance
 ```
 
-Rules:
-- One H1 per file, matching the filename date in ISO format (`YYYY-MM-DD`).
-- One H2 per operation, starting with `## [HH:MM] <op> | <one-line description>`.
-- Time is local time, 24h.
-- Body is a short bullet list summarising what changed. Link to the files touched with wikilinks.
+## Allowed operation labels
 
-## Ops allowed in the log
+- `scaffold`
+- `ingest`
+- `compile`
+- `query`
+- `promote`
+- `review`
+- `lint`
+- `audit`
 
-| Op | When it appears | Example |
-|---|---|---|
-| `compile`  | Structural edits, splits, merges, index rebuild | `## [10:00] compile \| split Claude Code page into 7 sub-pages` |
-| `ingest`   | New source added to `raw/`, wiki updated | `## [09:15] ingest \| google-gemma-4-article` |
-| `query`    | Question answered, output file written | `## [11:20] query \| rag-vs-llm-wiki-tradeoffs` |
-| `promote`  | Output promoted to `wiki/concepts/` | `## [11:35] promote \| RAG vs LLM Wiki (from query)` |
-| `lint`     | Lint run with issues fixed | `## [15:05] lint \| 2 dead links found, 2 fixed` |
-| `audit`    | Feedback applied and moved to `audit/resolved/` | `## [14:30] audit \| resolved 20260409-143022-a1b2` |
-| `split`    | A single page split into a folder | `## [10:00] split \| Claude Code → claude-code/` |
-| `scaffold` | Initial wiki setup | `## [08:00] scaffold \| Initialized Topic knowledge base` |
+## Logging rules
 
-## Quick grep
+- Keep entries short and scannable.
+- Mention touched canonical files when helpful.
+- Log what changed, not the entire rationale.
+- Put durable system rules in `WORKBENCH.md`, not here.
 
-```bash
-# All operations on a day
-cat log/20260409.md
+## Good examples
 
-# Recent activity across all days
-grep -rh "^## \[" log/ | sort | tail -20
+- `## [10:00] compile | refreshed two active projects from new repo signals`
+- `## [11:35] promote | trust-metric idea -> project candidate`
+- `## [15:05] lint | found 3 registry/index drift issues`
 
-# All audit resolutions
-grep -rh "^## \[.*\] audit" log/
+## Avoid
 
-# Activity on a specific file
-grep -rl "Claude_Code" log/
-```
+- copying large content blocks into the log
+- writing private notes or secrets
+- treating the log as a general journal
 
-## Migration from single-file `log.md`
-
-If you have an existing `log.md` (from the v1 skill), convert it:
-
-1. Parse each `## [YYYY-MM-DD] op | description` header.
-2. Group entries by date.
-3. For each date `D`, create `log/D.md` with an H1 of the date and H2s for each op — convert `[YYYY-MM-DD]` to `[HH:MM]` (use `00:00` if no time recorded).
-4. Delete the old `log.md`.
-
-This is a one-time manual operation; the skill doesn't automate it.
-
-## What not to put in the log
-
-- **Content**: don't copy-paste chunks of the article you wrote into the log. The log is a pointer, not a diary.
-- **Long rationale**: put design decisions and rationale in `CLAUDE.md` "Notes for the LLM", not in the log.
-- **Secrets / credentials**: never.
-- **Audit file bodies**: only the audit ID and a one-liner. The audit file itself already has the full content.
-
+Use `raw/daily/` for personal journaling instead.

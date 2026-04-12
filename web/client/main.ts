@@ -14,7 +14,7 @@ interface PageResponse {
 }
 
 const state = {
-  currentPath: "wiki/index.md" as string,
+  currentPath: "indexes/Home.md" as string,
   rawMarkdown: "" as string,
   author: "me" as string,
   graphTeardown: null as (() => void) | null,
@@ -85,11 +85,14 @@ async function main() {
   });
 
   // Initial page.
-  const initial = new URL(window.location.href).searchParams.get("page") ?? "wiki/index.md";
+  const initial = new URL(window.location.href).searchParams.get("page") ?? "indexes/Home.md";
   await loadPage(initial);
 
   window.addEventListener("popstate", (e) => {
-    const p = (e.state && e.state.page) || new URL(window.location.href).searchParams.get("page") || "wiki/index.md";
+    const p =
+      (e.state && e.state.page) ||
+      new URL(window.location.href).searchParams.get("page") ||
+      "indexes/Home.md";
     void loadPage(p);
   });
 

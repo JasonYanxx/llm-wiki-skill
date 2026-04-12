@@ -31,4 +31,4 @@ if (fs.existsSync(targetDir)) {
 
 fs.symlinkSync(pluginDir, targetDir, "dir");
 console.log(`Linked ${pluginDir}\n      -> ${targetDir}`);
-console.log("Now enable 'LLM Wiki Audit' in Obsidian → Settings → Community plugins.");
+console.log("Now enable 'Research Workbench Audit' in Obsidian → Settings → Community plugins.");
