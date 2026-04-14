@@ -4,6 +4,28 @@ import type { Request, Response } from "express";
 import type { ServerConfig } from "../config.js";
 import { createRenderer } from "../render/markdown.js";
 
+const ALLOWED_ASSET_EXTENSIONS = new Set([
+  ".avif",
+  ".bmp",
+  ".gif",
+  ".heic",
+  ".jpeg",
+  ".jpg",
+  ".m4a",
+  ".mov",
+  ".mp3",
+  ".mp4",
+  ".ogg",
+  ".pdf",
+  ".png",
+  ".svg",
+  ".tif",
+  ".tiff",
+  ".wav",
+  ".webm",
+  ".webp",
+]);
+
 export function handlePage(cfg: ServerConfig) {
   return (req: Request, res: Response) => {
     const relRaw = (req.query.path as string | undefined) ?? "";
@@ -73,11 +95,22 @@ export function handleFile(cfg: ServerConfig) {
       res.status(403).send("forbidden");
       return;
     }
+    if (!isAllowedAssetPath(relFromRoot)) {
+      res.status(403).send("forbidden");
+      return;
+    }
     if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
       res.status(404).send("not found");
       return;
     }
-    res.sendFile(full);
+    const realRoot = fs.realpathSync.native(cfg.wikiRoot);
+    const realFull = fs.realpathSync.native(full);
+    const relFromRealRoot = path.relative(realRoot, realFull);
+    if (relFromRealRoot.startsWith("..") || path.isAbsolute(relFromRealRoot)) {
+      res.status(403).send("forbidden");
+      return;
+    }
+    res.sendFile(realFull);
   };
 }
 
@@ -88,6 +121,11 @@ function safeRel(input: string, fallback?: string): string | null {
   const normalized = path.posix.normalize(input);
   if (normalized.startsWith("..")) return null;
   return normalized;
+}
+
+function isAllowedAssetPath(relPath: string): boolean {
+  const ext = path.extname(relPath).toLowerCase();
+  return ALLOWED_ASSET_EXTENSIONS.has(ext);
 }
 
 function resolveMarkdownPath(root: string, rel: string): string | null {
