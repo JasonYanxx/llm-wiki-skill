@@ -59,6 +59,15 @@ CROSS_REFS = {
     ],
     "docs/references/index.md": ["../../llm-wiki/references/harness-guide.md", "../../llm-wiki/references/schema-guide.md"],
 }
+ENTRY_CONTRACT_SENTENCE = "Canonical repo-aware entry set: `PROJECT.md`, `README.md`, `docs/index.md`."
+SECONDARY_DOC_SENTENCE = "`ARCHITECTURE.md` 与 `PLANS.md` 是进入之后的次级文档，不是 primary repo-aware jump targets"
+ARCHITECTURE_SECONDARY_SENTENCE = "当前文件是进入之后的次级架构文档，不是 primary repo-aware jump target"
+CONTRACT_DOCS = [
+    "AGENTS.md",
+    "README.md",
+    "PROJECT.md",
+    "ARCHITECTURE.md",
+]
 
 
 def read_text(path: Path) -> str:
@@ -92,6 +101,18 @@ def lint(root: Path) -> list[str]:
         for needle in needles:
             if needle not in text:
                 issues.append(f"missing cross-reference in {rel}: {needle}")
+
+    for rel in CONTRACT_DOCS:
+        path = root / rel
+        if not path.is_file():
+            continue
+        text = read_text(path)
+        if ENTRY_CONTRACT_SENTENCE not in text:
+            issues.append(f"missing canonical entry contract in {rel}")
+        if rel == "ARCHITECTURE.md" and ARCHITECTURE_SECONDARY_SENTENCE not in text:
+            issues.append(f"missing architecture secondary-doc note in {rel}")
+        if rel != "ARCHITECTURE.md" and SECONDARY_DOC_SENTENCE not in text:
+            issues.append(f"missing secondary-doc note in {rel}")
 
     expected_outputs = build_outputs(root)
     for rel in GENERATED_OUTPUTS:

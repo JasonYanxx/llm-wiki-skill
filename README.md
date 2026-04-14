@@ -15,18 +15,24 @@ Codex 真正维护 Obsidian 的入口，始终在 vault 内：
 
 ## Repo Entry Surface
 
-如果你是第一次进入这个仓库，推荐按下面顺序读取：
+Canonical repo-aware entry set: `PROJECT.md`, `README.md`, `docs/index.md`.
 
-- `AGENTS.md`
-  - 给 agent 的最短入口图
 - `PROJECT.md`
-  - 这个 repo 到底维护什么、不维护什么
-- `ARCHITECTURE.md`
-  - 子系统边界与依赖方向
-- `PLANS.md`
-  - 当前 active plan、completed archive、tech debt 入口
+  - 首选 agent execution entry
+- `README.md`
+  - 人类可读总览
 - `docs/index.md`
   - 深层设计、规格、生成索引、参考资料的总目录
+
+`AGENTS.md` 是你已经进入 repo 之后的本地导航图。  
+`ARCHITECTURE.md` 与 `PLANS.md` 是进入之后的次级文档，不是 primary repo-aware jump targets。
+
+如果你已经在读 `README.md`，推荐继续按下面顺序读取：
+
+1. `PROJECT.md`
+2. `ARCHITECTURE.md`
+3. `PLANS.md`
+4. `docs/index.md`
 
 ## v2 目标
 

@@ -27,6 +27,8 @@
 
 ## Boundary Rules
 
+- Canonical repo-aware entry set: `PROJECT.md`, `README.md`, `docs/index.md`.
+- 当前文件是进入之后的次级架构文档，不是 primary repo-aware jump target
 - repo 根目录入口文档是导航层，不是长文档堆积区
 - `docs/` 存放深层、可链接、可持续维护的 system-of-record
 - runtime protocol 优先记录在 `llm-wiki/references/`

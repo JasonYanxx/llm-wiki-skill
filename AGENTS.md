@@ -1,20 +1,29 @@
 # AGENTS.md
 
-这个仓库已经按 agent-first workspace 组织。先看地图，再读深层文档。
+这个仓库已经按 agent-first workspace 组织。这个文件是你已经进入 repo 之后的本地导航图，不是对外的 primary jump target。
 
-## Start Here
+## Canonical Repo Entry Contract
+
+- Canonical repo-aware entry set: `PROJECT.md`, `README.md`, `docs/index.md`.
+- 首选 agent execution entry 是 [PROJECT.md](PROJECT.md)
+- [README.md](README.md) 提供人类可读总览
+- [docs/index.md](docs/index.md) 提供深层 docs catalog
+- `ARCHITECTURE.md` 与 `PLANS.md` 是进入之后的次级文档，不是 primary repo-aware jump targets
+
+## Preferred Agent Path
 
 1. [PROJECT.md](PROJECT.md)
-2. [ARCHITECTURE.md](ARCHITECTURE.md)
-3. [PLANS.md](PLANS.md)
-4. [docs/index.md](docs/index.md)
+2. [README.md](README.md)
+3. [ARCHITECTURE.md](ARCHITECTURE.md)
+4. [PLANS.md](PLANS.md)
+5. [docs/index.md](docs/index.md)
 
 ## Core Boundary
 
 - 这个 repo 维护 harness 源码、viewer、plugin、skill 文档
 - 被维护对象仍然是外部 Obsidian workbench
 - 不要把这个 repo 当成 vault runtime target
-- repo-aware 跳转入口只使用：
+- repo-aware 跳转入口只使用 canonical entry set：
   - `PROJECT.md`
   - `README.md`
   - `docs/index.md`
