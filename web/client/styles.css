@@ -547,6 +547,23 @@ article .wikilink-dead {
   border-bottom-style: dotted;
 }
 
+article img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  background: rgba(17, 17, 27, 0.35);
+}
+article a > img {
+  display: inline-block;
+  margin: 0.4rem 0;
+}
+article .wikilink-embed-dead {
+  border-color: rgba(243, 139, 168, 0.45);
+}
+
 /* code */
 article code {
   background: rgba(49, 50, 68, 0.6);

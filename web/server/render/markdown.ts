@@ -18,9 +18,11 @@ export interface RenderedPage {
 
 export interface RendererOptions {
   wikiRoot: string;
+  pagePath: string;
 }
 
 export function createRenderer(opts: RendererOptions) {
+  const assetIndex = new Map<string, string | null>();
   const md = new MarkdownIt({
     html: false,
     linkify: true,
@@ -42,6 +44,13 @@ export function createRenderer(opts: RendererOptions) {
   });
 
   const resolver: WikilinkResolver = (target) => {
+    if (isImageTarget(target)) {
+      const asset = resolveAssetPath(opts.wikiRoot, opts.pagePath, target, assetIndex);
+      return {
+        href: `/api/file?path=${encodeURIComponent(asset ?? target)}`,
+        exists: Boolean(asset),
+      };
+    }
     // Try a few resolutions: exact relative path, match by stem under wiki/.
     const candidate = findPage(opts.wikiRoot, target);
     if (candidate) {
@@ -58,6 +67,18 @@ export function createRenderer(opts: RendererOptions) {
   };
 
   md.use(wikilinksPlugin, resolver);
+
+  const defaultImage =
+    md.renderer.rules.image ??
+    ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options));
+  md.renderer.rules.image = (tokens, idx, options, env, self) => {
+    const tok = tokens[idx]!;
+    const src = tok.attrGet("src") ?? "";
+    const asset = resolveAssetPath(opts.wikiRoot, opts.pagePath, src, assetIndex);
+    if (asset) tok.attrSet("src", `/api/file?path=${encodeURIComponent(asset)}`);
+    tok.attrJoin("class", "markdown-image");
+    return defaultImage(tokens, idx, options, env, self);
+  };
 
   // Attach data-source-line to every top-level block token so the client can
   // map DOM selections back to source lines.
@@ -100,6 +121,77 @@ function escapeHtml(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function isExternalUrl(target: string): boolean {
+  return /^[a-z][a-z0-9+.-]*:/i.test(target) || target.startsWith("//");
+}
+
+function decodePath(target: string): string {
+  try {
+    return decodeURIComponent(target);
+  } catch {
+    return target;
+  }
+}
+
+function isImageTarget(target: string): boolean {
+  const clean = target.split("#")[0]!.split("?")[0]!;
+  return /\.(png|jpe?g|gif|webp|svg|bmp|heic|tiff)$/i.test(clean);
+}
+
+function resolveAssetPath(
+  wikiRoot: string,
+  pagePath: string,
+  target: string,
+  cache: Map<string, string | null>,
+): string | null {
+  if (!target || isExternalUrl(target)) return null;
+
+  const decoded = decodePath(target).replace(/\\/g, "/");
+  const withoutHash = decoded.split("#")[0]!.split("?")[0]!;
+  const normalizedTarget = withoutHash.startsWith("/") ? withoutHash.slice(1) : withoutHash;
+  const noteDir = path.posix.dirname(pagePath);
+  const candidates = new Set<string>();
+
+  const addCandidate = (candidate: string): void => {
+    const normalized = path.posix.normalize(candidate);
+    if (!normalized.startsWith("..")) candidates.add(normalized);
+  };
+
+  addCandidate(path.posix.join(noteDir, normalizedTarget));
+  addCandidate(normalizedTarget);
+
+  const base = path.posix.basename(normalizedTarget);
+  addCandidate(path.posix.join("图片", base));
+
+  for (const candidate of candidates) {
+    const full = path.join(wikiRoot, candidate);
+    if (fs.existsSync(full) && fs.statSync(full).isFile()) return candidate;
+  }
+
+  if (!base) return null;
+  if (cache.has(base)) return cache.get(base) ?? null;
+
+  const found = findByFilename(wikiRoot, base);
+  const rel = found ? path.relative(wikiRoot, found).split(path.sep).join("/") : null;
+  cache.set(base, rel);
+  return rel;
+}
+
+function findByFilename(dir: string, target: string): string | null {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name === ".git" || entry.name === "node_modules") continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const hit = findByFilename(full, target);
+      if (hit) return hit;
+    } else if (entry.isFile() && entry.name === target) {
+      return full;
+    }
+  }
+  return null;
 }
 
 const FRONTMATTER_RE = /^---\n([\s\S]*?)\n---\n?/;
