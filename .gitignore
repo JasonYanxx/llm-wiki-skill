@@ -8,9 +8,14 @@ npm-debug.log*
 dist/
 *.tsbuildinfo
 
+# Python cache
+__pycache__/
+*.pyc
+
 # Obsidian plugin build output
 plugins/obsidian-audit/main.js
 plugins/obsidian-audit/main.js.map
+plugins/obsidian-audit/data.json
 
 # Web server build output
 web/dist/

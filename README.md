@@ -13,6 +13,21 @@ Codex 真正维护 Obsidian 的入口，始终在 vault 内：
 
 不是这个项目仓库根目录，也不是 Obsidian app 本身。
 
+## Repo Entry Surface
+
+如果你是第一次进入这个仓库，推荐按下面顺序读取：
+
+- `AGENTS.md`
+  - 给 agent 的最短入口图
+- `PROJECT.md`
+  - 这个 repo 到底维护什么、不维护什么
+- `ARCHITECTURE.md`
+  - 子系统边界与依赖方向
+- `PLANS.md`
+  - 当前 active plan、completed archive、tech debt 入口
+- `docs/index.md`
+  - 深层设计、规格、生成索引、参考资料的总目录
+
 ## v2 目标
 
 当前版本把项目从“schema + scaffold + lint + skill 文档”升级成了一个更完整的 **maintenance harness**：
@@ -53,6 +68,47 @@ Codex 真正维护 Obsidian 的入口，始终在 vault 内：
   - 展示 workbench health / graph / audits
 - `audit-shared/`
   - web 与插件共用的 anchored audit schema
+- `docs/`
+  - repo 内部知识导航与设计文档
+  - 不承载 runtime workbench，只记录 harness 设计与执行归档
+
+## 仓库知识导航
+
+仓库级知识采用“两层结构”：
+
+- 根目录短入口文档
+  - `AGENTS.md`
+  - `PROJECT.md`
+  - `ARCHITECTURE.md`
+  - `DESIGN.md`
+  - `FRONTEND.md`
+  - `PLANS.md`
+  - `QUALITY_SCORE.md`
+  - `RELIABILITY.md`
+  - `SECURITY.md`
+- `docs/` 深层 system-of-record
+  - design docs
+  - active / completed execution plans
+  - product specs
+  - generated inventories
+  - references catalog
+
+- `docs/index.md`
+  - repo 的 agent-readable map
+- `docs/design-docs/`
+  - repo 级 design docs，例如 research workbench 的演化设计
+- `docs/exec-plans/active/`
+  - 当前进行中的 execution plans
+- `docs/exec-plans/completed/`
+  - 已完成的执行清单与升级归档
+- `docs/product-specs/`
+  - 面向真实子系统的短规格说明
+- `docs/generated/`
+  - 由脚本生成的 repo / command inventories
+- `docs/references/`
+  - 指向 `llm-wiki/references/` 的 catalog
+
+这只是仓库知识组织的调整，不改变 workbench 的 runtime contract，也不改变 Codex 在 vault 内的 canonical 维护入口。
 
 ## Runtime Contract
 
@@ -116,6 +172,16 @@ python3 llm-wiki/scripts/harness.py preflight <workbench-root>
 python3 llm-wiki/scripts/harness.py health <workbench-root>
 python3 llm-wiki/scripts/harness.py postflight <workbench-root>
 ```
+
+## Repo Workspace Commands
+
+```bash
+python3 llm-wiki/scripts/generate_repo_inventory.py .
+python3 llm-wiki/scripts/lint_repo_workspace.py .
+python3 -m py_compile llm-wiki/scripts/*.py
+```
+
+这组命令服务的是仓库级 harness workspace，而不是外部 workbench runtime。
 
 ### `preflight`
 
