@@ -41,14 +41,15 @@ export function handlePage(cfg: ServerConfig) {
       return;
     }
 
-    // Guarantee the resolved path is still inside wikiRoot.
-    const relFromRoot = path.relative(cfg.wikiRoot, full);
-    if (relFromRoot.startsWith("..") || path.isAbsolute(relFromRoot)) {
+    const realFull = resolveContainedRealFile(cfg.wikiRoot, full);
+    if (!realFull) {
       res.status(403).json({ error: "path escapes workbench root" });
       return;
     }
+    const realRoot = fs.realpathSync.native(cfg.wikiRoot);
+    const relFromRoot = path.relative(realRoot, realFull);
 
-    const rawMarkdown = fs.readFileSync(full, "utf-8");
+    const rawMarkdown = fs.readFileSync(realFull, "utf-8");
     const renderer = createRenderer({
       wikiRoot: cfg.wikiRoot,
       pagePath: relFromRoot.split(path.sep).join("/"),
@@ -73,11 +74,12 @@ export function handleRaw(cfg: ServerConfig) {
       return;
     }
     const full = path.join(cfg.wikiRoot, rel);
-    if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
+    const realFull = resolveContainedRealFile(cfg.wikiRoot, full);
+    if (!realFull) {
       res.status(404).send("not found");
       return;
     }
-    res.type("text/markdown").send(fs.readFileSync(full));
+    res.type("text/markdown").send(fs.readFileSync(realFull));
   };
 }
 
@@ -157,4 +159,13 @@ function resolveMarkdownPath(root: string, rel: string): string | null {
     }
   }
   return null;
+}
+
+function resolveContainedRealFile(root: string, full: string): string | null {
+  if (!fs.existsSync(full) || !fs.statSync(full).isFile()) return null;
+  const realRoot = fs.realpathSync.native(root);
+  const realFull = fs.realpathSync.native(full);
+  const relFromRoot = path.relative(realRoot, realFull);
+  if (relFromRoot.startsWith("..") || path.isAbsolute(relFromRoot)) return null;
+  return realFull;
 }
