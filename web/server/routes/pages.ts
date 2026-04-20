@@ -18,7 +18,6 @@ const ALLOWED_ASSET_EXTENSIONS = new Set([
   ".ogg",
   ".pdf",
   ".png",
-  ".svg",
   ".tif",
   ".tiff",
   ".wav",

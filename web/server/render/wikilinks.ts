@@ -67,7 +67,7 @@ export function wikilinksPlugin(md: MarkdownIt, resolve: WikilinkResolver): void
 
 function isImageTarget(target: string): boolean {
   const clean = target.split("#")[0]!.split("?")[0]!;
-  return /\.(png|jpe?g|gif|webp|svg|bmp|heic|tiff)$/i.test(clean);
+  return /\.(png|jpe?g|gif|webp|bmp|heic|tiff)$/i.test(clean);
 }
 
 function isNumericAlias(alias: string): boolean {
